@@ -38,6 +38,8 @@ public class SecurityConfig {
                     req.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll();
 
                     req.requestMatchers("/api/v1/usuarios/**").permitAll();
+                    req.requestMatchers("/api/v1/funcionarios/**").permitAll();
+                    req.requestMatchers("/api/v1/familias/**").permitAll();
 
                     req.anyRequest().authenticated();
                 })

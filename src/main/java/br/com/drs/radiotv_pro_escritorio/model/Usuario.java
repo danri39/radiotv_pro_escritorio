@@ -5,7 +5,6 @@ import br.com.drs.radiotv_pro_escritorio.model.enuns.Setores;
 import br.com.drs.radiotv_pro_escritorio.model.enuns.Sistemas;
 import jakarta.persistence.*;
 import lombok.*;
-import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDateTime;
 import java.util.List;

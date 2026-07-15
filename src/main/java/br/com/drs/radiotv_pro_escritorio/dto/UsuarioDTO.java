@@ -3,7 +3,6 @@ package br.com.drs.radiotv_pro_escritorio.dto;
 import br.com.drs.radiotv_pro_escritorio.model.enuns.Papeis;
 import br.com.drs.radiotv_pro_escritorio.model.enuns.Setores;
 import br.com.drs.radiotv_pro_escritorio.model.enuns.Sistemas;
-import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;

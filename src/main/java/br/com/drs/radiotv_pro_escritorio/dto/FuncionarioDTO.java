@@ -4,7 +4,6 @@ import br.com.drs.radiotv_pro_escritorio.model.enuns.Formacao;
 import br.com.drs.radiotv_pro_escritorio.model.enuns.Sexo;
 import br.com.drs.radiotv_pro_escritorio.model.enuns.TipoPessoa;
 import com.fasterxml.jackson.annotation.JsonFormat;
-import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;

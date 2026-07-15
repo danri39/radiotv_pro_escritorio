@@ -14,8 +14,7 @@ public class RamoAtividade {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Long ramo_atividade_id;
 
     private String descricao;
-
 }

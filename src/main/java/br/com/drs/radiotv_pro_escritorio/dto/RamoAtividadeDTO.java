@@ -9,7 +9,7 @@ import lombok.*;
 @Builder
 public class RamoAtividadeDTO {
 
-    private Long id;
+    private Long ramo_atividade_id;
 
     private String descricao;
 }

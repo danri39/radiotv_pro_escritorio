@@ -9,12 +9,9 @@ import org.mapstruct.MappingTarget;
 @Mapper(componentModel = "spring")
 public interface FilhosMapper {
 
-    @Mapping(source = "funcionario.funcionarioId", target = "funcionarioId")
     FilhosDTO toDTO(Filhos filhos);
 
-    @Mapping(target = "funcionarioId", ignore = true)
     Filhos toEntity(FilhosDTO dto);
 
-    @Mapping(target = "funcionarioId", ignore = true)
     void UpdateEntityFromDto(FilhosDTO dto, @MappingTarget Filhos filhos);
 }

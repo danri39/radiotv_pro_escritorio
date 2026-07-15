@@ -40,6 +40,7 @@ public class SecurityConfig {
                     req.requestMatchers("/api/v1/usuarios/**").permitAll();
                     req.requestMatchers("/api/v1/funcionarios/**").permitAll();
                     req.requestMatchers("/api/v1/familias/**").permitAll();
+                    req.requestMatchers("/api/v1/filhos/**").permitAll();
 
                     req.anyRequest().authenticated();
                 })

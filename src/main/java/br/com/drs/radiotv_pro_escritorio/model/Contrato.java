@@ -51,6 +51,10 @@ public class Contrato {
     @Builder.Default
     private Boolean contratoBonificado = false;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean semComissao = false;
+
     @Builder.Default
     private Boolean ativo = true;
 }

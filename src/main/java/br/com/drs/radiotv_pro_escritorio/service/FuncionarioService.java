@@ -10,7 +10,6 @@ import br.com.drs.radiotv_pro_escritorio.repository.FuncionarioRepository;
 import br.com.drs.radiotv_pro_escritorio.util.DocumentoUtils;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -46,13 +45,16 @@ public class FuncionarioService  {
     }
 
     @Transactional
-    public ResponseEntity<List<Funcionario>> listarTodos() {
-        return ResponseEntity.ok(repository.findAll());
+    public List<FuncionarioDTO> listarTodos() {
+        return repository.findAll()
+                .stream()
+                .map(mapper::toDTO)
+                .toList();
     }
 
     @Transactional
-    public ResponseEntity<Optional<Funcionario>> buscarPorId(Long id) {
-        return ResponseEntity.ok(repository.findById(id));
+    public Optional<FuncionarioDTO> buscarPorId(Long id) {
+        return repository.findById(id).map(mapper::toDTO);
     }
 
     @Transactional
@@ -67,5 +69,18 @@ public class FuncionarioService  {
 
     public void apagar(Long id) {
         repository.deleteById(id);
+    }
+
+    public List<FuncionarioDTO> buscarPorNome(String nome) {
+        if (nome == null || nome.isBlank()) {
+            throw new RegraNegocioException("Nome não pode ser vazio.");
+        }
+        List<Funcionario> funcionarios = repository.findByNomeContainingIgnoreCase(nome.trim());
+        if (funcionarios.isEmpty()) {
+            throw new EntidadeNaoEncontradaException("Funcionário não encontrado.");
+        }
+        return funcionarios.stream()
+                .map(mapper::toDTO)
+                .toList();
     }
 }

@@ -1,7 +1,6 @@
 package br.com.drs.radiotv_pro_escritorio.controller;
 
 import br.com.drs.radiotv_pro_escritorio.dto.FuncionarioDTO;
-import br.com.drs.radiotv_pro_escritorio.model.Funcionario;
 import br.com.drs.radiotv_pro_escritorio.service.FuncionarioService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -25,12 +24,18 @@ public class FuncionarioController {
     }
 
     @GetMapping
-    public ResponseEntity<List<FuncionarioDTO>> listarTodos() {
-        return ResponseEntity.ok((List<FuncionarioDTO>) service.listarTodos());
+    public ResponseEntity<List<FuncionarioDTO>> listarOuBuscar(
+            @RequestParam(required = false) String nome) {
+
+        if (nome != null && !nome.isBlank()) {
+            return ResponseEntity.ok(service.buscarPorNome(nome));
+        }
+
+        return ResponseEntity.ok(service.listarTodos());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ResponseEntity<Optional<Funcionario>>> buscarPorId(@PathVariable Long id) {
+    public ResponseEntity<Optional<FuncionarioDTO>> buscarPorId(@PathVariable Long id) {
         return ResponseEntity.ok(service.buscarPorId(id));
     }
 

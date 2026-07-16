@@ -72,17 +72,13 @@ public class FuncionarioService  {
     }
 
     public List<FuncionarioDTO> buscarPorNome(String nome) {
-
         if (nome == null || nome.isBlank()) {
             throw new RegraNegocioException("Nome não pode ser vazio.");
         }
-
         List<Funcionario> funcionarios = repository.findByNomeContainingIgnoreCase(nome.trim());
-
         if (funcionarios.isEmpty()) {
             throw new EntidadeNaoEncontradaException("Funcionário não encontrado.");
         }
-
         return funcionarios.stream()
                 .map(mapper::toDTO)
                 .toList();

@@ -5,9 +5,7 @@ import br.com.drs.radiotv_pro_escritorio.exception.EntidadeNaoEncontradaExceptio
 import br.com.drs.radiotv_pro_escritorio.exception.RegraNegocioException;
 import br.com.drs.radiotv_pro_escritorio.mapper.FilhosMapper;
 import br.com.drs.radiotv_pro_escritorio.model.Filhos;
-import br.com.drs.radiotv_pro_escritorio.model.Funcionario;
 import br.com.drs.radiotv_pro_escritorio.repository.FilhosRepository;
-import br.com.drs.radiotv_pro_escritorio.repository.FuncionarioRepository;
 import br.com.drs.radiotv_pro_escritorio.util.DocumentoUtils;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -15,13 +13,13 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class FilhosService {
 
     private final FilhosRepository repository;
-    private final FuncionarioRepository funcionarioRepository;
     private final FilhosMapper mapper;
 
     @Transactional
@@ -33,23 +31,21 @@ public class FilhosService {
         if (dto.getFuncionarioId() == null) {
             throw new RegraNegocioException("O vínculo com um Funcionário é obrigatório.");
         }
-
-        Funcionario funcionario = funcionarioRepository.findById(dto.getFuncionarioId())
-                .orElseThrow(() -> new EntidadeNaoEncontradaException("Funcionário com ID " + dto.getFuncionarioId() + " não encontrado."));
-
         Filhos entity = mapper.toEntity(dto);
-        entity.setFuncionario(funcionario);
-
         Filhos saved = repository.save(entity);
         return mapper.toDTO(saved);
     }
 
-    public List<Filhos> listarTodos() {
-        return repository.findAll();
+    public List<FilhosDTO> listarTodos() {
+        return repository.findAllWithFuncionario().stream()
+                .map(mapper::toDTO)
+                .collect(Collectors.toList());
     }
 
-    public Optional<Filhos> buscarPorId(Long id) {
-        return repository.findById(id);
+    public FilhosDTO buscarPorId(Long id) {
+        Filhos entity = repository.findByIdWithFuncionario(id)
+                .orElseThrow(() -> new EntidadeNaoEncontradaException("Filho não encontrado"));
+        return mapper.toDTO(entity);
     }
 
     @Transactional
@@ -60,17 +56,9 @@ public class FilhosService {
         if (dto.getFuncionarioId() == null) {
             throw new RegraNegocioException("O vínculo com um Funcionário é obrigatório.");
         }
-
         Filhos entityExistente = repository.findById(id)
                 .orElseThrow(() -> new EntidadeNaoEncontradaException("Filho com ID " + id + " não encontrado para atualização."));
-
-        Funcionario funcionario = funcionarioRepository.findById(dto.getFuncionarioId())
-                .orElseThrow(() -> new EntidadeNaoEncontradaException("Funcionário com ID " + dto.getFuncionarioId() + " não encontrado."));
-
-        // Atualiza os campos
         mapper.updateEntityFromDto(dto, entityExistente);
-        entityExistente.setFuncionario(funcionario);
-
         Filhos saved = repository.save(entityExistente);
         return mapper.toDTO(saved);
     }

@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/v1/filhos")
@@ -23,15 +24,13 @@ public class FilhosController {
     }
 
     @GetMapping
-    public List<Filhos> listarTodos() {
+    public List<FilhosDTO> listarTodos() {
         return service.listarTodos();
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Filhos> buscarPorId(@PathVariable Long id) {
-        return service.buscarPorId(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public FilhosDTO buscarPOrId(@PathVariable Long id) {
+        return service.buscarPorId(id);
     }
 
     @PutMapping("/{id}")
@@ -41,8 +40,7 @@ public class FilhosController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<String> apagar(@PathVariable Long id) {
+    public void apagar(@PathVariable Long id) {
         service.apagar(id);
-        return ResponseEntity.ok("Filho excluído com sucesso!");
     }
 }

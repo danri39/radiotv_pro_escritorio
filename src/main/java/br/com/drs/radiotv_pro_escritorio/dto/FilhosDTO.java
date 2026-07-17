@@ -17,6 +17,8 @@ public class FilhosDTO {
 
     private Long funcionarioId;
 
+    private String nomeFuncionario;
+
     private String nome;
 
     private String cpf;

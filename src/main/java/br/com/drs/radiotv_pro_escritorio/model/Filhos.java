@@ -19,7 +19,7 @@ public class Filhos {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long filhosId;
+    private Long id;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "funcionario_id", nullable = false)

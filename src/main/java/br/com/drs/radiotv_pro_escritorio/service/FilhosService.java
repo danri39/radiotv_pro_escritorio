@@ -48,12 +48,12 @@ public class FilhosService {
         return repository.findAll();
     }
 
-    public Optional<Filhos> buscarPorId(Long filhosId) {
-        return repository.findById(filhosId);
+    public Optional<Filhos> buscarPorId(Long id) {
+        return repository.findById(id);
     }
 
     @Transactional
-    public FilhosDTO atualizar(Long filhosId, FilhosDTO dto) {
+    public FilhosDTO atualizar(Long id, FilhosDTO dto) {
         if (dto.getCpf() != null && !dto.getCpf().isBlank() && !DocumentoUtils.isCPF(dto.getCpf())) {
             throw new RegraNegocioException("CPF inválido!");
         }
@@ -61,8 +61,8 @@ public class FilhosService {
             throw new RegraNegocioException("O vínculo com um Funcionário é obrigatório.");
         }
 
-        Filhos entityExistente = repository.findById(filhosId)
-                .orElseThrow(() -> new EntidadeNaoEncontradaException("Filho com ID " + filhosId + " não encontrado para atualização."));
+        Filhos entityExistente = repository.findById(id)
+                .orElseThrow(() -> new EntidadeNaoEncontradaException("Filho com ID " + id + " não encontrado para atualização."));
 
         Funcionario funcionario = funcionarioRepository.findById(dto.getFuncionarioId())
                 .orElseThrow(() -> new EntidadeNaoEncontradaException("Funcionário com ID " + dto.getFuncionarioId() + " não encontrado."));
@@ -76,10 +76,10 @@ public class FilhosService {
     }
 
     @Transactional
-    public void apagar(Long filhosId) {
-        if (!repository.existsById(filhosId)) {
-            throw new EntidadeNaoEncontradaException("Filho com ID " + filhosId + " não encontrado para exclusão.");
+    public void apagar(Long id) {
+        if (!repository.existsById(id)) {
+            throw new EntidadeNaoEncontradaException("Filho com ID " + id + " não encontrado para exclusão.");
         }
-        repository.deleteById(filhosId);
+        repository.deleteById(id);
     }
 }

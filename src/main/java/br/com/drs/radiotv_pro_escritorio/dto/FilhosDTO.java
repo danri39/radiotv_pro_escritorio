@@ -13,7 +13,7 @@ import java.time.LocalDate;
 @Builder
 public class FilhosDTO {
 
-    private Long filhosId;
+    private Long id;
 
     private Long funcionarioId;
 

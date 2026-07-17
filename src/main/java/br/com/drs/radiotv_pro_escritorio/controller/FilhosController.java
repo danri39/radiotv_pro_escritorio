@@ -8,7 +8,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/v1/filhos")
@@ -28,22 +27,22 @@ public class FilhosController {
         return service.listarTodos();
     }
 
-    @GetMapping("/{filhosId}")
-    public ResponseEntity<Filhos> buscarPorId(@PathVariable Long filhosId) {
-        return service.buscarPorId(filhosId)
+    @GetMapping("/{id}")
+    public ResponseEntity<Filhos> buscarPorId(@PathVariable Long id) {
+        return service.buscarPorId(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @PutMapping("/{filhosId}")
-    public ResponseEntity<String> atualizar(@PathVariable Long filhosId, @RequestBody FilhosDTO dto) {
-        service.atualizar(filhosId, dto);
+    @PutMapping("/{id}")
+    public ResponseEntity<String> atualizar(@PathVariable Long id, @RequestBody FilhosDTO dto) {
+        service.atualizar(id, dto);
         return ResponseEntity.ok("Filho atualizado com sucesso!");
     }
 
-    @DeleteMapping("/{filhosId}")
-    public ResponseEntity<String> apagar(@PathVariable Long filhosId) {
-        service.apagar(filhosId);
+    @DeleteMapping("/{id}")
+    public ResponseEntity<String> apagar(@PathVariable Long id) {
+        service.apagar(id);
         return ResponseEntity.ok("Filho excluído com sucesso!");
     }
 }

@@ -20,7 +20,7 @@ public class FilhosController {
     @PostMapping
     public ResponseEntity<String> salvar(@RequestBody FilhosDTO dto) {
         service.salvar(dto);
-        return ResponseEntity.ok("Filhos salvo com sucesso!");
+        return ResponseEntity.ok("Filho salvo com sucesso!");
     }
 
     @GetMapping
@@ -28,19 +28,22 @@ public class FilhosController {
         return service.listarTodos();
     }
 
-    @GetMapping("/{id}")
-    public Optional<Filhos> buscarPorIr(@PathVariable Long id) {
-        return service.buscarPorId(id);
+    @GetMapping("/{filhosId}")
+    public ResponseEntity<Filhos> buscarPorId(@PathVariable Long filhosId) {
+        return service.buscarPorId(filhosId)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<String> atualizar(@PathVariable Long id, @RequestBody FilhosDTO dto) {
-        service.atualizar(id, dto);
-        return ResponseEntity.ok("Filhos atualizados com sucesso!");
+    @PutMapping("/{filhosId}")
+    public ResponseEntity<String> atualizar(@PathVariable Long filhosId, @RequestBody FilhosDTO dto) {
+        service.atualizar(filhosId, dto);
+        return ResponseEntity.ok("Filho atualizado com sucesso!");
     }
 
-    @DeleteMapping("/{id}")
-    public void apagar(@PathVariable Long id) {
-        service.apagar(id);
+    @DeleteMapping("/{filhosId}")
+    public ResponseEntity<String> apagar(@PathVariable Long filhosId) {
+        service.apagar(filhosId);
+        return ResponseEntity.ok("Filho excluído com sucesso!");
     }
 }

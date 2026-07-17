@@ -11,7 +11,9 @@ public interface FilhosMapper {
 
     FilhosDTO toDTO(Filhos filhos);
 
+    @Mapping(target = "funcionario", ignore = true)
     Filhos toEntity(FilhosDTO dto);
 
-    void UpdateEntityFromDto(FilhosDTO dto, @MappingTarget Filhos filhos);
+    @Mapping(target = "funcionario", ignore = true)
+    void updateEntityFromDto(FilhosDTO dto, @MappingTarget Filhos filhos);
 }

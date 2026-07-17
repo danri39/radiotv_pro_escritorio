@@ -5,7 +5,7 @@ import br.com.drs.radiotv_pro_escritorio.dto.UsuarioDTO;
 import br.com.drs.radiotv_pro_escritorio.mapper.UsuarioMapper;
 import br.com.drs.radiotv_pro_escritorio.model.Usuario;
 import br.com.drs.radiotv_pro_escritorio.model.enuns.Papeis;
-import br.com.drs.radiotv_pro_escritorio.model.enuns.Setores;
+import br.com.drs.radiotv_pro_escritorio.model.enuns.Setor;
 import br.com.drs.radiotv_pro_escritorio.repository.UsuarioRepository;
 import br.com.drs.radiotv_pro_escritorio.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
@@ -113,7 +113,7 @@ public class UsuarioService {
         novoUsuario.setAcessoEscritorio(false);
         novoUsuario.setAtivo(true);
         novoUsuario.setPapel(Papeis.CONVIDADO);
-        novoUsuario.setSetores(Collections.singletonList(Setores.OUTROS));
+        novoUsuario.setSetor(Collections.singletonList(Setor.OUTROS));
 
         usuarioRepository.save(novoUsuario);
 

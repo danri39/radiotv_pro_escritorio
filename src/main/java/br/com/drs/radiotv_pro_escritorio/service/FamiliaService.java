@@ -26,16 +26,21 @@ public class FamiliaService {
 
     @Transactional
     public FamiliaDTO salvar(FamiliaDTO dto) {
+        // 1. Validação de segurança contra null/NaN vindo do frontend
+        if (dto.getFuncionarioId() == null) {
+            throw new RegraNegocioException("O vínculo com um Funcionário é obrigatório.");
+        }
 
-        if (!DocumentoUtils.isCPF(dto.getCpf())) {
+        if (dto.getCpf() != null && !DocumentoUtils.isCPF(dto.getCpf())) {
             throw new RegraNegocioException("CPF inválido!");
         }
 
-        Familia entity = mapper.toEntity(dto);
-
+        // 2. Busca o funcionário (se o ID for inválido, cai no orElseThrow com mensagem clara)
         Funcionario funcionario = funcionarioRepository.findById(dto.getFuncionarioId())
-                .orElseThrow(() -> new EntidadeNaoEncontradaException("Funcionário não encontrado."));
+                .orElseThrow(() -> new EntidadeNaoEncontradaException("Funcionário com ID " + dto.getFuncionarioId() + " não encontrado."));
 
+        // 3. Mapeia e associa
+        Familia entity = mapper.toEntity(dto);
         entity.setFuncionario(funcionario);
 
         Familia saved = repository.save(entity);
@@ -47,22 +52,52 @@ public class FamiliaService {
         return repository.findAll();
     }
 
-    public Optional<Familia> BuscarPorId(Long id) {
+    public Optional<Familia> buscarPorId(Long id) {
         return repository.findById(id);
     }
 
     @Transactional
     public FamiliaDTO atualizar(Long id, FamiliaDTO dto) {
-        if(!DocumentoUtils.isCPF(dto.getCpf())) {
+        // 1. Validação de segurança
+        if (dto.getFuncionarioId() == null) {
+            throw new RegraNegocioException("O vínculo com um Funcionário é obrigatório.");
+        }
+        if (dto.getCpf() != null && !DocumentoUtils.isCPF(dto.getCpf())) {
             throw new RegraNegocioException("CPF inválido!");
         }
-        Familia entity = mapper.toEntity(dto);
-        Familia saved = repository.save(entity);
+
+        // 2. Busca a entidade existente pelo ID da URL (CORREÇÃO CRÍTICA)
+        Familia entityExistente = repository.findById(id)
+                .orElseThrow(() -> new EntidadeNaoEncontradaException("Familiar com ID " + id + " não encontrado para atualização."));
+
+        // 3. Busca o funcionário
+        Funcionario funcionario = funcionarioRepository.findById(dto.getFuncionarioId())
+                .orElseThrow(() -> new EntidadeNaoEncontradaException("Funcionário com ID " + dto.getFuncionarioId() + " não encontrado."));
+
+        // 4. Atualiza os campos manualmente (garante que não criamos um registro novo por acidente)
+        // Ajuste os nomes dos setters (ex: setNome, setFamiliar) conforme estão na sua classe Familia
+        entityExistente.setConjugue(dto.getConjugue());
+        entityExistente.setCpf(dto.getCpf());
+        entityExistente.setRg(dto.getRg());
+        entityExistente.setTelefone(dto.getTelefone());
+        entityExistente.setCelular(dto.getCelular());
+        entityExistente.setDataNascimento(dto.getDataNascimento());
+        entityExistente.setSexo(dto.getSexo());
+        entityExistente.setFormacao(dto.getFormacao());
+        entityExistente.setAtivo(dto.getAtivo());
+
+        // 5. Reassocia o funcionário
+        entityExistente.setFuncionario(funcionario);
+
+        Familia saved = repository.save(entityExistente);
         return mapper.toDTO(saved);
     }
 
     @Transactional
     public void apagar(Long id) {
+        if (!repository.existsById(id)) {
+            throw new EntidadeNaoEncontradaException("Familiar com ID " + id + " não encontrado para exclusão.");
+        }
         repository.deleteById(id);
     }
 }

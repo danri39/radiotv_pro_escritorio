@@ -4,7 +4,6 @@ import br.com.drs.radiotv_pro_escritorio.dto.ConfiguracaoDTO;
 import br.com.drs.radiotv_pro_escritorio.model.Configuracao;
 import br.com.drs.radiotv_pro_escritorio.service.ConfiguracaoService;
 import lombok.RequiredArgsConstructor;
-import org.hibernate.annotations.AnyDiscriminatorImplicitValues;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

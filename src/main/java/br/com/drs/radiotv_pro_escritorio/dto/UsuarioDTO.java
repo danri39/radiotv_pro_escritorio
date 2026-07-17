@@ -1,8 +1,7 @@
 package br.com.drs.radiotv_pro_escritorio.dto;
 
 import br.com.drs.radiotv_pro_escritorio.model.enuns.Papeis;
-import br.com.drs.radiotv_pro_escritorio.model.enuns.Setores;
-import br.com.drs.radiotv_pro_escritorio.model.enuns.Sistemas;
+import br.com.drs.radiotv_pro_escritorio.model.enuns.Setor;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -28,7 +27,7 @@ public class UsuarioDTO {
 
     private Papeis papel;
 
-    private List<Setores> setores = new ArrayList<>();
+    private List<Setor> setores = new ArrayList<>();
 
     @Builder.Default
     private Boolean acessoEscritorio = false;

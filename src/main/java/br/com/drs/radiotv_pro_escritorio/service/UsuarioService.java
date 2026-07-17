@@ -2,110 +2,72 @@ package br.com.drs.radiotv_pro_escritorio.service;
 
 import br.com.drs.radiotv_pro_escritorio.dto.LoginResponseDTO;
 import br.com.drs.radiotv_pro_escritorio.dto.UsuarioDTO;
-import br.com.drs.radiotv_pro_escritorio.exception.EntidadeNaoEncontradaException;
-import br.com.drs.radiotv_pro_escritorio.exception.RegraNegocioException;
 import br.com.drs.radiotv_pro_escritorio.mapper.UsuarioMapper;
 import br.com.drs.radiotv_pro_escritorio.model.Usuario;
 import br.com.drs.radiotv_pro_escritorio.model.enuns.Papeis;
 import br.com.drs.radiotv_pro_escritorio.model.enuns.Setores;
 import br.com.drs.radiotv_pro_escritorio.repository.UsuarioRepository;
-import br.com.drs.radiotv_pro_escritorio.util.CriarChaves;
 import br.com.drs.radiotv_pro_escritorio.util.JwtUtil;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
 public class UsuarioService {
 
-    private final UsuarioRepository repository;
-    private final UsuarioMapper mapper;
+    private final UsuarioRepository usuarioRepository;
+    private final UsuarioMapper usuarioMapper;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
     private final JwtUtil jwtUtil;
 
-    public UsuarioDTO salvar(UsuarioDTO dto) {
-        if (repository.findByEmail(dto.getEmail()).isPresent()) {
-            throw new RegraNegocioException("E-mail já cadastrado no sistema.");
-        }
+    // ==========================================
+    // CONSULTAS
+    // ==========================================
 
-        Usuario novoUsuario = mapper.toEntity(dto);
-        String chaveUser = CriarChaves.gerarChaveUsuario();
-        String chaveCadastro = CriarChaves.gerarChavePrimeiroAcesso();
-        novoUsuario.setChaveUsuario(chaveUser);
-        novoUsuario.setChavePrimeiroAcesso(chaveCadastro);
-        novoUsuario.setPapeis(Papeis.CONVIDADO);
-        novoUsuario.setAcessoEscritorio(false);
-        novoUsuario.setSetores(Collections.singletonList(Setores.OUTROS));
-        novoUsuario.setAtivo(true);
-        novoUsuario.setSenha(null);
-
-        repository.save(novoUsuario);
-        emailService.enviarEmailCadastro(novoUsuario.getEmail(), chaveUser, chaveCadastro);
-
-        return mapper.toDTO(novoUsuario);
-    }
-
-    public List<UsuarioDTO> listarTodos() {
-        return repository.findAll().stream()
-                .map(mapper::toDTO)
+    public List<UsuarioDTO> buscarTodos() {
+        // Dica: Se o seu @Mapper tiver o método toDTO(List<Usuario>), use: usuarioMapper.toDTO(usuarioRepository.findAll())
+        return usuarioRepository.findAll().stream()
+                .map(usuarioMapper::toDTO)
                 .toList();
     }
 
     public UsuarioDTO buscarPorId(Long id) {
-        return repository.findById(id)
-                .map(mapper::toDTO)
-                .orElseThrow(() -> new EntidadeNaoEncontradaException("Usuário não encontrado com o ID: " + id));
+        return usuarioMapper.toDTO(buscarUsuarioPorId(id));
     }
 
-    public UsuarioDTO atualizar(UsuarioDTO dto, Long id) {
-        Usuario usuarioExistente = repository.findById(id)
-                .orElseThrow(() -> new EntidadeNaoEncontradaException("Usuário não encontrado com o ID: " + id));
-
-        mapper.updateEntityFromDto(dto, usuarioExistente);
-        repository.save(usuarioExistente);
-
-        return mapper.toDTO(usuarioExistente);
-    }
-
-    public void apagar(Long id) {
-        if (!repository.existsById(id)) {
-            throw new EntidadeNaoEncontradaException("Não foi possível excluir. Usuário não encontrado com o ID: " + id);
-        }
-        repository.deleteById(id);
-    }
+    // ==========================================
+    // AUTENTICAÇÃO E SENHAS
+    // ==========================================
 
     @Transactional
     public LoginResponseDTO login(UsuarioDTO dto) {
         Usuario usuario = buscarUsuarioPorChave(dto.getChaveUsuario());
         validarCredenciaisLogin(usuario, dto.getSenha());
 
-        usuario.setAcessoSistema(LocalDateTime.now());
-        repository.save(usuario);
+        usuario.registrarAcesso(); // Clean Code: A entidade cuida do seu próprio estado
+        usuarioRepository.save(usuario);
 
-        return new LoginResponseDTO(jwtUtil.gerarToken(usuario), mapper.toDTO(usuario));
+        return new LoginResponseDTO(jwtUtil.gerarToken(usuario), usuarioMapper.toDTO(usuario));
     }
 
     @Transactional
     public void definirSenhaPrimeiroAcesso(UsuarioDTO dto) {
         Usuario usuario = buscarUsuarioPorChavePrimeiroAcesso(dto.getChavePrimeiroAcesso());
         usuario.finalizarPrimeiroAcesso(passwordEncoder.encode(dto.getSenha()));
-        repository.save(usuario);
+        usuarioRepository.save(usuario);
     }
 
     @Transactional
     public void solicitarTrocaSenha(UsuarioDTO dto) {
         Usuario usuario = buscarUsuarioPorChave(dto.getChaveUsuario());
-        String chaveTroca = CriarChaves.gerarChaveTrocaSenha();
-        usuario.setChaveTrocaSenha(chaveTroca);
-        repository.save(usuario);
+        usuario.gerarNovaChaveTrocaSenha();
+        usuarioRepository.save(usuario);
 
         emailService.enviarEmailTrocaSenha(usuario.getEmail(), usuario.getChaveTrocaSenha());
     }
@@ -114,14 +76,18 @@ public class UsuarioService {
     public void efetivarTrocaSenha(UsuarioDTO dto) {
         Usuario usuario = buscarUsuarioPorChaveTrocaSenha(dto.getChaveTrocaSenha());
         usuario.alterarSenha(passwordEncoder.encode(dto.getSenha()));
-        repository.save(usuario);
+        usuarioRepository.save(usuario);
     }
+
+    // ==========================================
+    // CADASTRO E ATUALIZAÇÃO
+    // ==========================================
 
     @Transactional
     public UsuarioDTO cadastrar(UsuarioDTO dto) {
         validarEmailUnico(dto.getEmail());
 
-        Usuario novoUsuario = mapper.toEntity(dto);
+        Usuario novoUsuario = usuarioMapper.paraEntity(dto);
 
         // ==========================================
         // GERAÇÃO DAS CHAVES DE ACESSO (ALFANUMÉRICAS E MAIÚSCULAS)
@@ -130,11 +96,11 @@ public class UsuarioService {
         // Gera Chave de Usuário (4 caracteres alfanuméricos únicos)
         String chaveUsuario;
         do {
-            chaveUsuario = CriarChaves.gerarChaveUsuario();
-        } while (repository.existsByChaveUsuario(chaveUsuario));
+            chaveUsuario = gerarChaveAlfanumerica(4);
+        } while (usuarioRepository.existsByChaveUsuario(chaveUsuario));
 
         // Gera Chave de Primeiro Acesso (40 caracteres alfanuméricos)
-        String chavePrimeiroAcesso = CriarChaves.gerarChavePrimeiroAcesso();
+        String chavePrimeiroAcesso = gerarChaveAlfanumerica(40);
 
         // Define os valores gerados
         novoUsuario.setChaveUsuario(chaveUsuario);
@@ -146,10 +112,10 @@ public class UsuarioService {
         // ==========================================
         novoUsuario.setAcessoEscritorio(false);
         novoUsuario.setAtivo(true);
-        novoUsuario.setPapeis(Papeis.CONVIDADO);
+        novoUsuario.setPapel(Papeis.CONVIDADO);
         novoUsuario.setSetores(Collections.singletonList(Setores.OUTROS));
 
-        repository.save(novoUsuario);
+        usuarioRepository.save(novoUsuario);
 
         emailService.enviarEmailCadastro(
                 novoUsuario.getEmail(),
@@ -157,7 +123,20 @@ public class UsuarioService {
                 novoUsuario.getChavePrimeiroAcesso()
         );
 
-        return mapper.toDTO(novoUsuario);
+        return usuarioMapper.toDTO(novoUsuario);
+    }
+
+    private String gerarChaveAlfanumerica(int tamanho) {
+        String caracteres = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        StringBuilder chave = new StringBuilder(tamanho);
+        java.util.Random random = new java.util.Random();
+
+        for (int i = 0; i < tamanho; i++) {
+            int indice = random.nextInt(caracteres.length());
+            chave.append(caracteres.charAt(indice));
+        }
+
+        return chave.toString(); // Já retorna em maiúsculas
     }
 
     @Transactional
@@ -169,7 +148,7 @@ public class UsuarioService {
         String senhaOriginal = usuario.getSenha();
 
         // O MapStruct atualiza tudo
-        mapper.updateEntityFromDto(dto, usuario);
+        usuarioMapper.updateEntityFromDto(dto, usuario);
 
         // RESTAURA OS CAMPOS PROTEGIDOS
         usuario.setChaveUsuario(chaveUsuarioOriginal);
@@ -178,13 +157,13 @@ public class UsuarioService {
         // Atualiza senha apenas se veio uma nova no DTO
         atualizarSenhaSeNecessario(dto, usuario);
 
-        return mapper.toDTO(repository.save(usuario));
+        return usuarioMapper.toDTO(usuarioRepository.save(usuario));
     }
 
     @Transactional
     public void deletar(Long id) {
         // Evita a dupla consulta do existsById + deleteById
-        repository.delete(buscarUsuarioPorId(id));
+        usuarioRepository.delete(buscarUsuarioPorId(id));
     }
 
     // ==========================================
@@ -192,7 +171,7 @@ public class UsuarioService {
     // ==========================================
 
     private Usuario buscarUsuarioPorId(Long id) {
-        return repository.findById(id)
+        return usuarioRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado com o ID: " + id));
     }
 
@@ -204,7 +183,7 @@ public class UsuarioService {
 
         System.out.println("DEBUG: Buscando no banco pela chave: [" + chaveUsuario + "]");
 
-        return repository.findByChaveUsuario(chaveUsuario)
+        return usuarioRepository.findByChaveUsuario(chaveUsuario)
                 .orElseThrow(() -> {
                     System.out.println("ERRO: Usuário não encontrado para a chave: " + chaveUsuario);
                     return new IllegalArgumentException("Chave de usuário inválida: " + chaveUsuario);
@@ -212,12 +191,12 @@ public class UsuarioService {
     }
 
     private Usuario buscarUsuarioPorChavePrimeiroAcesso(String chave) {
-        return repository.findByChavePrimeiroAcesso(chave)
+        return usuarioRepository.findByChavePrimeiroAcesso(chave)
                 .orElseThrow(() -> new IllegalArgumentException("Chave de primeiro acesso inválida."));
     }
 
     private Usuario buscarUsuarioPorChaveTrocaSenha(String chave) {
-        return repository.findByChaveTrocaSenha(chave)
+        return usuarioRepository.findByChaveTrocaSenha(chave)
                 .orElseThrow(() -> new IllegalArgumentException("Chave de troca de senha inválida."));
     }
 
@@ -228,7 +207,7 @@ public class UsuarioService {
     }
 
     private void validarEmailUnico(String email) {
-        if (repository.existsByEmail(email)) {
+        if (usuarioRepository.existsByEmail(email)) {
             throw new IllegalArgumentException("E-mail já cadastrado.");
         }
     }
@@ -247,7 +226,7 @@ public class UsuarioService {
 
         System.out.println("🔍 DEBUG: Buscando no banco pelo EMAIL: [" + email + "]");
 
-        return repository.findByEmail(email)
+        return usuarioRepository.findByEmail(email)
                 .orElseThrow(() -> {
                     System.out.println("❌ ERRO: Usuário não encontrado para o email: " + email);
                     return new IllegalArgumentException("Email não encontrado: " + email);

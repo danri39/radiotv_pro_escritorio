@@ -9,13 +9,16 @@ import org.mapstruct.MappingTarget;
 @Mapper(componentModel = "spring")
 public interface UsuarioMapper {
 
-    UsuarioDTO toDTO(Usuario usuario);
+    UsuarioDTO toDTO(Usuario entidade);
 
-    Usuario toEntity(UsuarioDTO dto);
+    Usuario paraEntity(UsuarioDTO dto);
 
-    @Mapping(target = "usuarioId", ignore = true)
-    @Mapping(target = "chaveUsuario", ignore = true)
-    @Mapping(target = "senha", ignore = true)
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "chaveUsuario", ignore = true)  // ← IGNORA NO UPDATE
+    @Mapping(target = "senha", ignore = true)          // ← IGNORA NO UPDATE
+    @Mapping(target = "criadoEm", ignore = true)
+    @Mapping(target = "atualizadoEm", ignore = true)
+    @Mapping(target = "primeiroAcesso", ignore = true)
     @Mapping(target = "chavePrimeiroAcesso", ignore = true)
     @Mapping(target = "chaveTrocaSenha", ignore = true)
     void updateEntityFromDto(UsuarioDTO dto, @MappingTarget Usuario entidade);

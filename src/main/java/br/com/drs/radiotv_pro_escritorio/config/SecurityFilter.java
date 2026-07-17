@@ -39,7 +39,7 @@ public class SecurityFilter extends OncePerRequestFilter {
                 usuarioRepository.findByEmail(email).ifPresent(usuario -> {
 
                     var authorities = Collections.singletonList(
-                            new SimpleGrantedAuthority("ROLE_" + usuario.getPapeis().name())
+                            new SimpleGrantedAuthority("ROLE_" + usuario.getPapel().name())
                     );
 
                     var authentication = new UsernamePasswordAuthenticationToken(
@@ -49,7 +49,7 @@ public class SecurityFilter extends OncePerRequestFilter {
                     );
 
                     SecurityContextHolder.getContext().setAuthentication(authentication);
-                    System.out.println("✅ Usuário autenticado: " + usuario.getPrimeiroNome());
+                    System.out.println("✅ Usuário autenticado: " + usuario.getNome());
                 });
             }
         }

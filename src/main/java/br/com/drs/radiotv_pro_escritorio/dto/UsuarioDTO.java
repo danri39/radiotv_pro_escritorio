@@ -6,6 +6,7 @@ import br.com.drs.radiotv_pro_escritorio.model.enuns.Sistemas;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Getter
@@ -15,9 +16,9 @@ import java.util.List;
 @Builder
 public class UsuarioDTO {
 
-    private Long usuarioId;
+    private Long id;
 
-    private String primeiroNome;
+    private String nome;
 
     private String email;
 
@@ -25,26 +26,26 @@ public class UsuarioDTO {
 
     private String chaveUsuario;
 
+    private Papeis papel;
+
+    private List<Setores> setores = new ArrayList<>();
+
     @Builder.Default
     private Boolean acessoEscritorio = false;
-
-    private Papeis papeis;
-
-    private List<Setores> setores;
-
-    private List<Sistemas> sistemas;
 
     private String chavePrimeiroAcesso;
 
     private String chaveTrocaSenha;
 
+    private Boolean primeiroAcesso;
+
     private LocalDateTime acessoSistema;
 
     private Long funcionarioId;
 
-    @Builder.Default
-    private Boolean primeiroAcesso = true;
-
-    @Builder.Default
     private Boolean ativo = true;
+
+    private LocalDateTime criadoEm;
+
+    private LocalDateTime atualizadoEm;
 }

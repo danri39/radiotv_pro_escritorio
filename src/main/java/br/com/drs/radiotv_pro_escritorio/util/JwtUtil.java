@@ -13,15 +13,15 @@ import java.util.Date;
 public class JwtUtil {
 
     // Gerar uma chave fixa ou injetar via @Value é melhor para não invalidar tokens ao reiniciar
-    private static final Key CHAVE_SECRETA = Keys.hmacShaKeyFor("chavedeSegurançaParaoProgramaRádioTv_Pro".getBytes());
+    private static final Key CHAVE_SECRETA = Keys.hmacShaKeyFor("chavedeSegurançaParaoProgramaRádioTv_App_Pro".getBytes());
     private static final long EXPIRATION_TIME = 86400000; // 24 horas
 
     public String gerarToken(Usuario usuario) {
         return Jwts.builder()
                 .setSubject(usuario.getEmail())
-                .claim("nome", usuario.getPrimeiroNome())
+                .claim("nome", usuario.getNome())
                 .claim("chaveUsuario", usuario.getChaveUsuario())
-                .claim("papel", usuario.getPapeis().toString())
+                .claim("papel", usuario.getPapel().toString())
                 .claim("setores", usuario.getSetores().stream().map(Enum::toString).toList())
                 .claim("acessoEscritorio", usuario.getAcessoEscritorio())
                 .claim("funcionarioId", usuario.getFuncionarioId())

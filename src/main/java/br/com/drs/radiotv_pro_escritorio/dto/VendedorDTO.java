@@ -13,7 +13,7 @@ public class VendedorDTO {
 
     private Long vendedorId;
 
-    private Funcionario funcionario;
+    private Long funcionarioId;
 
     private BigDecimal metaMes;
 

@@ -48,6 +48,9 @@ public class SecurityConfig {
                     req.requestMatchers("/api/v1/ramoAtividade/**").permitAll();
                     req.requestMatchers("/api/v1/beneficios/**").permitAll();
                     req.requestMatchers("/api/v1/contaBancaria/**").permitAll();
+                    req.requestMatchers("/api/v1/programas/**").permitAll();
+                    req.requestMatchers("/api/v1/contratos/**").permitAll();
+                    req.requestMatchers("/api/v1/vendedor/**").permitAll();
 
                     req.anyRequest().authenticated();
                 })

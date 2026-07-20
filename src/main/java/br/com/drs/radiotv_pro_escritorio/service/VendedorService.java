@@ -24,7 +24,7 @@ public class VendedorService {
     public VendedorDTO salvar(VendedorDTO dto) {
 
         Vendedor entity = mapper.toEntity(dto);
-        Funcionario funcionario = repository.findById(dto.getFuncionario().getId())
+        Funcionario funcionario = repository.findById(dto.getFuncionarioId())
                 .orElseThrow(() -> new EntidadeNaoEncontradaException("Funcionário não encontrado.")).getFuncionario();
 
         entity.setFuncionario(funcionario);
@@ -45,7 +45,7 @@ public class VendedorService {
     @Transactional
     public VendedorDTO atualizar(Long id, VendedorDTO dto) {
         Vendedor entity = mapper.toEntity(dto);
-        Funcionario funcionario = repository.findById(dto.getFuncionario().getId())
+        Funcionario funcionario = repository.findById(dto.getFuncionarioId())
                 .orElseThrow(() -> new EntidadeNaoEncontradaException("Funcionário não encontrado.")).getFuncionario();
         entity.setFuncionario(funcionario);
         Vendedor saved = repository.save(entity);

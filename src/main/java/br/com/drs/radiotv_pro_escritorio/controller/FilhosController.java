@@ -20,23 +20,23 @@ public class FilhosController {
     @PostMapping
     public ResponseEntity<String> salvar(@RequestBody FilhosDTO dto) {
         service.salvar(dto);
-        return ResponseEntity.ok("Filhos salvo com sucesso!");
+        return ResponseEntity.ok("Filho salvo com sucesso!");
     }
 
     @GetMapping
-    public List<Filhos> listarTodos() {
+    public List<FilhosDTO> listarTodos() {
         return service.listarTodos();
     }
 
     @GetMapping("/{id}")
-    public Optional<Filhos> buscarPorIr(@PathVariable Long id) {
+    public FilhosDTO buscarPOrId(@PathVariable Long id) {
         return service.buscarPorId(id);
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<String> atualizar(@PathVariable Long id, @RequestBody FilhosDTO dto) {
         service.atualizar(id, dto);
-        return ResponseEntity.ok("Filhos atualizados com sucesso!");
+        return ResponseEntity.ok("Filho atualizado com sucesso!");
     }
 
     @DeleteMapping("/{id}")

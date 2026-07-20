@@ -1,8 +1,7 @@
 package br.com.drs.radiotv_pro_escritorio.model;
 
 import br.com.drs.radiotv_pro_escritorio.model.enuns.Papeis;
-import br.com.drs.radiotv_pro_escritorio.model.enuns.Setores;
-import br.com.drs.radiotv_pro_escritorio.model.enuns.Sistemas;
+import br.com.drs.radiotv_pro_escritorio.model.enuns.Setor;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -24,8 +23,8 @@ public class Usuario {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @EqualsAndHashCode.Include
-    private Long id;
+    @Column(name = "usuario_id")
+    private Long usuarioId;
 
     @Column(nullable = false, length = 100, unique = true)
     private String nome;
@@ -48,7 +47,7 @@ public class Usuario {
     @Column(name = "setor", nullable = false, length = 30)
     @Enumerated(EnumType.STRING)
     @Builder.Default
-    private List<Setores> setores = new ArrayList<>();
+    private List<Setor> setor = new ArrayList<>();
 
     @Builder.Default
     private Boolean acessoEscritorio = false;

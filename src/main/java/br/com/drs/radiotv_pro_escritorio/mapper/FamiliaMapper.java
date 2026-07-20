@@ -9,7 +9,6 @@ import org.mapstruct.MappingTarget;
 @Mapper(componentModel = "spring")
 public interface FamiliaMapper {
 
-    @Mapping(source = "funcionario.funcionarioId", target = "funcionarioId")
     FamiliaDTO toDTO(Familia familia);
 
     @Mapping(target = "funcionario", ignore = true)

@@ -4,7 +4,6 @@ import br.com.drs.radiotv_pro_escritorio.dto.ContratoPagamentoDTO;
 import br.com.drs.radiotv_pro_escritorio.model.ContratoPagamento;
 import br.com.drs.radiotv_pro_escritorio.service.ContratoPagamentoService;
 import lombok.RequiredArgsConstructor;
-import org.hibernate.annotations.AnyDiscriminatorImplicitValues;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

@@ -5,7 +5,7 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public enum Setores {
+public enum Setor {
 
     DIRECAO("Direção Geral"),
     JORNALISMO("Jornalismo"),

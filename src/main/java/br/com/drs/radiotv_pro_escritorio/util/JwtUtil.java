@@ -1,61 +1,66 @@
 package br.com.drs.radiotv_pro_escritorio.util;
 
 import br.com.drs.radiotv_pro_escritorio.model.Usuario;
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.stereotype.Component;
 
-import java.security.Key;
+import javax.crypto.SecretKey;
 import java.util.Date;
 
 @Component
 public class JwtUtil {
 
-    // Gerar uma chave fixa ou injetar via @Value é melhor para não invalidar tokens ao reiniciar
-    private static final Key CHAVE_SECRETA = Keys.hmacShaKeyFor("chavedeSegurançaParaoProgramaRádioTv_App_Pro".getBytes());
-    private static final long EXPIRATION_TIME = 86400000; // 24 horas
+    private static final SecretKey CHAVE_SECRETA = Keys.hmacShaKeyFor("chavedeSegurançaParaoProgramaRádioTv_App_Pro".getBytes());
+
+    private static final long EXPIRATION_TIME = 86400000; // 24 horas em milissegundos
 
     public String gerarToken(Usuario usuario) {
         return Jwts.builder()
-                .setSubject(usuario.getEmail())
+                .subject(usuario.getEmail()) // Na v0.12.x, usa-se .subject() em vez de .setSubject()
                 .claim("nome", usuario.getNome())
                 .claim("chaveUsuario", usuario.getChaveUsuario())
                 .claim("papel", usuario.getPapel().toString())
-                .claim("setores", usuario.getSetores().stream().map(Enum::toString).toList())
+                .claim("setor", usuario.getSetor().stream().map(Enum::toString).toList())
                 .claim("acessoEscritorio", usuario.getAcessoEscritorio())
                 .claim("funcionarioId", usuario.getFuncionarioId())
                 .claim("ativo", usuario.getAtivo())
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
-                // AQUI ESTAVA O ERRO: Use a variável CHAVE_SECRETA que você definiu
-                .signWith(CHAVE_SECRETA, SignatureAlgorithm.HS256)
+                .issuedAt(new Date())        // Na v0.12.x, usa-se .issuedAt() em vez de .setIssuedAt()
+                .expiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME)) // .expiration() em vez de .setExpiration()
+                .signWith(CHAVE_SECRETA)
                 .compact();
     }
 
     public String extrairEmail(String token) {
         try {
-            return Jwts.parserBuilder()
-                    .setSigningKey(CHAVE_SECRETA)
+            // API MODERNA DO JJWT 0.12.x
+            Claims claims = Jwts.parser()
+                    .verifyWith(CHAVE_SECRETA)       // Substitui o antigo .setSigningKey()
                     .build()
-                    .parseClaimsJws(token)
-                    .getBody()
-                    .getSubject();
+                    .parseSignedClaims(token)        // Substitui o antigo .parseClaimsJws()
+                    .getPayload();                   // Substitui o antigo .getBody()
+
+            return claims.getSubject();
         } catch (Exception e) {
+            // Token inválido, expirado ou malformado
             return null;
         }
     }
 
     public boolean tokenValido(String token) {
         try {
-            return Jwts.parserBuilder()
-                    .setSigningKey(CHAVE_SECRETA)
+            // API MODERNA DO JJWT 0.12.x
+            Claims claims = Jwts.parser()
+                    .verifyWith(CHAVE_SECRETA)
                     .build()
-                    .parseClaimsJws(token)
-                    .getBody()
-                    .getExpiration()
-                    .after(new Date());
+                    .parseSignedClaims(token)
+                    .getPayload();
+
+            // Verifica se a data de expiração é posterior à data atual
+            return claims.getExpiration().after(new Date());
         } catch (Exception e) {
+            // Qualquer exceção (expirado, assinatura inválida, etc.) torna o token inválido
             return false;
         }
     }

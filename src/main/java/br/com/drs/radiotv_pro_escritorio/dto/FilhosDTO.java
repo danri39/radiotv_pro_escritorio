@@ -1,12 +1,9 @@
 package br.com.drs.radiotv_pro_escritorio.dto;
 
-import br.com.drs.radiotv_pro_escritorio.model.Funcionario;
 import br.com.drs.radiotv_pro_escritorio.model.enuns.Formacao;
 import br.com.drs.radiotv_pro_escritorio.model.enuns.Sexo;
 import com.fasterxml.jackson.annotation.JsonFormat;
-import jakarta.persistence.*;
 import lombok.*;
-
 import java.time.LocalDate;
 
 @Getter
@@ -16,9 +13,11 @@ import java.time.LocalDate;
 @Builder
 public class FilhosDTO {
 
-    private Long filhosId;
+    private Long id;
 
-    private Funcionario funcionario;
+    private Long funcionarioId;
+
+    private String nomeFuncionario;
 
     private String nome;
 

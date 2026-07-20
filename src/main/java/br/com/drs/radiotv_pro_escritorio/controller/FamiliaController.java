@@ -30,7 +30,7 @@ public class FamiliaController {
 
     @GetMapping("/{id}")
     public Optional<Familia> buscarPorId(@PathVariable Long id) {
-        return service.BuscarPorId(id);
+        return service.buscarPorId(id);
     }
 
     @PutMapping("/{id}")

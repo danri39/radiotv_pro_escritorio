@@ -22,7 +22,7 @@ public class Funcionario {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long funcionarioId;
+    private Long id;
 
     @Column(nullable = false, length = 150)
     private String nome;
@@ -44,10 +44,8 @@ public class Funcionario {
     @Enumerated(EnumType.STRING)
     private TipoPessoa tipoPessoa;
 
-    @Column(unique = true)
     private String cpf;
 
-    @Column(unique = true)
     private String cnpj;
 
     private String rg;
@@ -70,7 +68,7 @@ public class Funcionario {
     @Enumerated(EnumType.STRING)
     private Sexo sexo;
 
-    @Column(nullable = false, unique = true, length = 150)
+    @Column(nullable = false, length = 150)
     private String email;
 
     private String telefone;

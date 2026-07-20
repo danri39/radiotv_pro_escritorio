@@ -13,7 +13,7 @@ public interface UsuarioMapper {
 
     Usuario paraEntity(UsuarioDTO dto);
 
-    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "usuarioId", ignore = true)
     @Mapping(target = "chaveUsuario", ignore = true)  // ← IGNORA NO UPDATE
     @Mapping(target = "senha", ignore = true)          // ← IGNORA NO UPDATE
     @Mapping(target = "criadoEm", ignore = true)

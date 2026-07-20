@@ -19,7 +19,7 @@ public class Familia {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long familiaId;
+    private Long id;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "funcionario_id", nullable = false)
@@ -27,6 +27,7 @@ public class Familia {
 
     private String conjugue;
 
+    @Column(unique = true)
     private String cpf;
 
     private String rg;

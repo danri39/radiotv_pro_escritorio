@@ -1,14 +1,13 @@
 package br.com.drs.radiotv_pro_escritorio.controller;
 
 import br.com.drs.radiotv_pro_escritorio.dto.FuncionarioDTO;
+import br.com.drs.radiotv_pro_escritorio.exception.RegraNegocioException;
 import br.com.drs.radiotv_pro_escritorio.service.FuncionarioService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.Optional;
+import java.util.Map;
 
 @RestController
 @RequestMapping("api/v1/funcionarios")
@@ -18,35 +17,33 @@ public class FuncionarioController {
     private final FuncionarioService service;
 
     @PostMapping
-    public ResponseEntity<FuncionarioDTO> salvar(@RequestBody FuncionarioDTO dto) {
-        FuncionarioDTO salvo = service.salvar(dto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(salvo);
+    public ResponseEntity<?> salvar(@RequestBody FuncionarioDTO dto) {
+        try {
+            return ResponseEntity.status(HttpStatus.CREATED).body(service.salvar(dto));
+        } catch (RegraNegocioException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("message", "Erro fatal: " + e.getMessage()));
+        }
     }
 
     @GetMapping
-    public ResponseEntity<List<FuncionarioDTO>> listarOuBuscar(
-            @RequestParam(required = false) String nome) {
-
-        if (nome != null && !nome.isBlank()) {
-            return ResponseEntity.ok(service.buscarPorNome(nome));
-        }
-
-        return ResponseEntity.ok(service.listarTodos());
-    }
-
-    @GetMapping("/{id}")
-    public ResponseEntity<Optional<FuncionarioDTO>> buscarPorId(@PathVariable Long id) {
-        return ResponseEntity.ok(service.buscarPorId(id));
+    public ResponseEntity<?> listarOuBuscar(@RequestParam(required = false) String nome) {
+        return ResponseEntity.ok(nome != null ? service.buscarPorNome(nome) : service.listarTodos());
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<FuncionarioDTO> atualizar(@PathVariable Long id, @RequestBody FuncionarioDTO dto) {
-        FuncionarioDTO atualizado = service.atualizar(dto, id);
-        return ResponseEntity.ok(atualizado);
+    public ResponseEntity<?> atualizar(@PathVariable Long id, @RequestBody FuncionarioDTO dto) {
+        try {
+            return ResponseEntity.ok(service.atualizar(dto, id));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", e.getMessage()));
+        }
     }
 
     @DeleteMapping("/{id}")
-    public void apagar(@PathVariable Long id) {
+    public ResponseEntity<Void> apagar(@PathVariable Long id) {
         service.apagar(id);
+        return ResponseEntity.noContent().build();
     }
 }

@@ -4,6 +4,9 @@ import br.com.drs.radiotv_pro_escritorio.model.enuns.Formacao;
 import br.com.drs.radiotv_pro_escritorio.model.enuns.Sexo;
 import br.com.drs.radiotv_pro_escritorio.model.enuns.TipoPessoa;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import jakarta.persistence.Column;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import lombok.*;
 
 import java.math.BigDecimal;
@@ -17,7 +20,7 @@ import java.time.LocalTime;
 @Builder
 public class FuncionarioDTO {
 
-    private Long funcionarioId;
+    private Long id;
 
     private String nome;
 

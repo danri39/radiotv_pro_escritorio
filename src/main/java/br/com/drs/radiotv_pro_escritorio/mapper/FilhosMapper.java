@@ -9,7 +9,7 @@ import org.mapstruct.MappingTarget;
 @Mapper(componentModel = "spring")
 public interface FilhosMapper {
 
-    @Mapping(source = "funcionario.funcionarioId", target = "funcionarioId")
+    @Mapping(source = "funcionario.id", target = "id")
     @Mapping(source = "funcionario.nome", target = "nomeFuncionario")
     FilhosDTO toDTO(Filhos filhos);
 

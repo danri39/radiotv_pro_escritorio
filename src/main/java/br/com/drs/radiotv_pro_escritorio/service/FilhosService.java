@@ -5,7 +5,9 @@ import br.com.drs.radiotv_pro_escritorio.exception.EntidadeNaoEncontradaExceptio
 import br.com.drs.radiotv_pro_escritorio.exception.RegraNegocioException;
 import br.com.drs.radiotv_pro_escritorio.mapper.FilhosMapper;
 import br.com.drs.radiotv_pro_escritorio.model.Filhos;
+import br.com.drs.radiotv_pro_escritorio.model.Funcionario;
 import br.com.drs.radiotv_pro_escritorio.repository.FilhosRepository;
+import br.com.drs.radiotv_pro_escritorio.repository.FuncionarioRepository;
 import br.com.drs.radiotv_pro_escritorio.util.DocumentoUtils;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -21,17 +23,37 @@ public class FilhosService {
 
     private final FilhosRepository repository;
     private final FilhosMapper mapper;
+    private final FuncionarioRepository funcionarioRepository;  // ← Adicione isso
 
     @Transactional
     public FilhosDTO salvar(FilhosDTO dto) {
+        // 1. Validação do CPF
         if (dto.getCpf() != null && !dto.getCpf().isBlank() && !DocumentoUtils.isCPF(dto.getCpf())) {
             throw new RegraNegocioException("CPF inválido!");
         }
 
+        // 2. Validação do funcionarioId
         if (dto.getFuncionarioId() == null) {
             throw new RegraNegocioException("O vínculo com um Funcionário é obrigatório.");
         }
-        Filhos entity = mapper.toEntity(dto);
+
+        // 3. Busca o funcionário
+        Funcionario funcionario = funcionarioRepository.findById(dto.getFuncionarioId())
+                .orElseThrow(() -> new EntidadeNaoEncontradaException("Funcionário com ID " + dto.getFuncionarioId() + " não encontrado."));
+
+        // 4. Cria a entidade manualmente (não usa o mapper)
+        Filhos entity = new Filhos();
+        entity.setFuncionario(funcionario);
+        entity.setNome(dto.getNome());
+        entity.setCpf(dto.getCpf());
+        entity.setRg(dto.getRg());
+        entity.setTelefone(dto.getTelefone());
+        entity.setCelular(dto.getCelular());
+        entity.setDataNascimento(dto.getDataNascimento());
+        entity.setSexo(dto.getSexo());
+        entity.setFormacao(dto.getFormacao());
+        entity.setAtivo(dto.getAtivo() != null ? dto.getAtivo() : true);
+
         Filhos saved = repository.save(entity);
         return mapper.toDTO(saved);
     }
@@ -50,15 +72,35 @@ public class FilhosService {
 
     @Transactional
     public FilhosDTO atualizar(Long id, FilhosDTO dto) {
+        // 1. Validações
         if (dto.getCpf() != null && !dto.getCpf().isBlank() && !DocumentoUtils.isCPF(dto.getCpf())) {
             throw new RegraNegocioException("CPF inválido!");
         }
+
         if (dto.getFuncionarioId() == null) {
             throw new RegraNegocioException("O vínculo com um Funcionário é obrigatório.");
         }
+
+        // 2. Busca a entidade existente
         Filhos entityExistente = repository.findById(id)
                 .orElseThrow(() -> new EntidadeNaoEncontradaException("Filho com ID " + id + " não encontrado para atualização."));
-        mapper.updateEntityFromDto(dto, entityExistente);
+
+        // 3. Busca o funcionário
+        Funcionario funcionario = funcionarioRepository.findById(dto.getFuncionarioId())
+                .orElseThrow(() -> new EntidadeNaoEncontradaException("Funcionário com ID " + dto.getFuncionarioId() + " não encontrado."));
+
+        // 4. Atualiza manualmente
+        entityExistente.setFuncionario(funcionario);
+        entityExistente.setNome(dto.getNome());
+        entityExistente.setCpf(dto.getCpf());
+        entityExistente.setRg(dto.getRg());
+        entityExistente.setTelefone(dto.getTelefone());
+        entityExistente.setCelular(dto.getCelular());
+        entityExistente.setDataNascimento(dto.getDataNascimento());
+        entityExistente.setSexo(dto.getSexo());
+        entityExistente.setFormacao(dto.getFormacao());
+        entityExistente.setAtivo(dto.getAtivo() != null ? dto.getAtivo() : true);
+
         Filhos saved = repository.save(entityExistente);
         return mapper.toDTO(saved);
     }

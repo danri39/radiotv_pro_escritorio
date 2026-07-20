@@ -37,14 +37,17 @@ public class SecurityConfig {
                     req.requestMatchers(HttpMethod.POST, "/api/v1/usuarios/public/login/**").permitAll();
                     req.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll();
 
+                    // ✅ CORRIGIDO: Adicionei a barra "/" no início de todas
                     req.requestMatchers("/api/v1/usuarios/**").permitAll();
-                    req.requestMatchers("api/v1/funcionarios/**").permitAll();
+                    req.requestMatchers("/api/v1/funcionarios/**").permitAll();
                     req.requestMatchers("/api/v1/familias/**").permitAll();
                     req.requestMatchers("/api/v1/filhos/**").permitAll();
                     req.requestMatchers("/api/v1/agencias/**").permitAll();
                     req.requestMatchers("/api/v1/vendedor/**").permitAll();
                     req.requestMatchers("/api/v1/clientes/**").permitAll();
                     req.requestMatchers("/api/v1/ramoAtividade/**").permitAll();
+                    req.requestMatchers("/api/v1/beneficios/**").permitAll();
+                    req.requestMatchers("/api/v1/contaBancaria/**").permitAll();
 
                     req.anyRequest().authenticated();
                 })
@@ -56,7 +59,6 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
 
         configuration.setAllowedOriginPatterns(List.of("*"));
-
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);

@@ -13,10 +13,10 @@ public interface FilhosMapper {
     @Mapping(source = "funcionario.nome", target = "nomeFuncionario")
     FilhosDTO toDTO(Filhos filhos);
 
-    @Mapping(target = "funcionario", ignore = true)
+    @Mapping(target = "funcionario", ignore = true)  // ← AQUI ESTÁ O PROBLEMA!
     Filhos toEntity(FilhosDTO dto);
 
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "funcionario", ignore = true)
+    @Mapping(target = "funcionario", ignore = true)  // ← AQUI TAMBÉM!
     void updateEntityFromDto(FilhosDTO dto, @MappingTarget Filhos filhos);
 }

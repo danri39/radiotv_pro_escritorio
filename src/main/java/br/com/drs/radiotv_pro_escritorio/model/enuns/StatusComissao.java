@@ -5,13 +5,10 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public enum StatusRecebimento {
+public enum StatusComissao {
 
-    A_FATURAR("A Faturar"),
-    FATURADO("Faturado"),
-    RECEBIDO("Recebido"),
-    ATRASADO("Atrasado"),
-    CANCELADO("Cancelado");
+    PENDENTE("Pendente de Processamento na Folha"),
+    PROCESSADA("Processada na Folha");
 
     private final String descricao;
 }

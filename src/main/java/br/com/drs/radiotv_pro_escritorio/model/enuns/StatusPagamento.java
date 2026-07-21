@@ -8,8 +8,10 @@ import lombok.Getter;
 public enum StatusPagamento {
 
     PENDENTE("Pendente"),
+    AGUARDANDO_DOCUMENTO("Aguardando Documento da Agência"),
+    PRONTO_PARA_PAGAMENTO("Pronto para Pagamento"),
     PAGO("Pago"),
     CANCELADO("Cancelado");
 
-    private String descricao;
+    private final String descricao;
 }

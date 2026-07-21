@@ -8,8 +8,8 @@ import lombok.Getter;
 public enum StatusRecebimento {
 
     A_FATURAR("A Faturar"),
-    FATURADO("Faturado"),
-    RECEBIDO("Recebido"),
+    FATURADO("Faturado (Boleto/Nota Emitida)"),
+    RECEBIDO("Recebido do Cliente"),
     ATRASADO("Atrasado"),
     CANCELADO("Cancelado");
 

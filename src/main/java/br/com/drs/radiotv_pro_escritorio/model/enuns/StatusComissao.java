@@ -8,7 +8,8 @@ import lombok.Getter;
 public enum StatusComissao {
 
     PENDENTE("Pendente de Processamento na Folha"),
-    PROCESSADA("Processada na Folha");
+    PROCESSADA("Processada na Folha de Pagamento"),
+    CANCELADA("Cancelada");
 
     private final String descricao;
 }

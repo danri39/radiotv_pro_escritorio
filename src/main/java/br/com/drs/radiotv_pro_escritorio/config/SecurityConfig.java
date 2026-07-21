@@ -37,7 +37,7 @@ public class SecurityConfig {
                     req.requestMatchers(HttpMethod.POST, "/api/v1/usuarios/public/login/**").permitAll();
                     req.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll();
 
-                    // ✅ CORRIGIDO: Adicionei a barra "/" no início de todas
+
                     req.requestMatchers("/api/v1/usuarios/**").permitAll();
                     req.requestMatchers("/api/v1/funcionarios/**").permitAll();
                     req.requestMatchers("/api/v1/familias/**").permitAll();
@@ -55,6 +55,8 @@ public class SecurityConfig {
                     req.requestMatchers("/api/v1/contratos-pagamento/**").permitAll();
                     req.requestMatchers("/api/v1/pagamentos/**").permitAll();
                     req.requestMatchers("/api/v1/comissoes-vendedor/**").permitAll();
+                    req.requestMatchers("/api/v1/administrador/**").permitAll();
+                    req.requestMatchers("/api/v1/gerencial/**").permitAll();
 
                     req.anyRequest().authenticated();
                 })

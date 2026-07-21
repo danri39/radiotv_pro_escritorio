@@ -12,10 +12,7 @@ public interface ComissaoVendedorMapper {
 
     /**
      * Converte Entidade para DTO
-     * Mapeia os dados dos relacionamentos aninhados:
-     * - vendedor → funcionario.nome
-     * - contratoPagamento → numeroParcela, valorParcela, valorEfetivoPago
-     * - contratoPagamento.contrato → contratoId, cliente.nome, quantidadeParcelas
+     * Mapeia os dados dos relacionamentos aninhados
      */
     @Mapping(target = "vendedorId", source = "vendedor.vendedorId")
     @Mapping(target = "vendedorNome", source = "vendedor.funcionario.nome")
@@ -26,13 +23,12 @@ public interface ComissaoVendedorMapper {
     @Mapping(target = "valorEfetivoPago", source = "contratoPagamento.valorEfetivoPago")
 
     @Mapping(target = "contratoId", source = "contratoPagamento.contrato.contratoId")
-    @Mapping(target = "clienteNome", source = "contratoPagamento.contrato.cliente.nome")
+    @Mapping(target = "clienteNome", source = "contratoPagamento.contrato.cliente.numero") // CORREÇÃO: usando 'numero' em vez de 'nome'
     @Mapping(target = "totalParcelas", source = "contratoPagamento.contrato.quantidadeParcelas")
     ComissaoVendedorDTO toDTO(ComissaoVendedor entity);
 
     /**
      * Converte DTO para Entidade
-     * Os relacionamentos são ignorados aqui e devem ser buscados no Service pelos IDs
      */
     @Mapping(target = "vendedor", ignore = true)
     @Mapping(target = "contratoPagamento", ignore = true)

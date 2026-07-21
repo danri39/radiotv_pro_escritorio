@@ -8,9 +8,9 @@ import lombok.Getter;
 public enum StatusCompra {
 
     PENDENTE("Pendente de Aprovação"),
-    APROVADA("Aprovada"),
-    RECUSADA("Recusada"),
-    PAGA("Paga");
+    APROVADA("Aprovada (Aguardando Pagamento)"),
+    RECUSADA("Recusada pelo Administrador"),
+    PAGA("Paga e Finalizada");
 
     private final String descricao;
 }

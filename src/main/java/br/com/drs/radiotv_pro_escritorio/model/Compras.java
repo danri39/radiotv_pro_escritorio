@@ -1,9 +1,10 @@
 package br.com.drs.radiotv_pro_escritorio.model;
 
+import br.com.drs.radiotv_pro_escritorio.model.enuns.StatusCompra;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -19,7 +20,7 @@ import java.util.List;
 public class Compras {
 
     @Id
-    @GeneratedValue(strategy = jakarta.persistence.GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long comprasId;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -36,15 +37,19 @@ public class Compras {
     @JsonFormat(pattern = "dd/MM/yyyy")
     private LocalDate dataPagamento;
 
-    private Boolean paga;
-
-    private Boolean compraAceita;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private StatusCompra statusCompra = StatusCompra.PENDENTE;
 
     private String justificativaRecusa;
 
+    @JsonIgnore
+    @Column(length = 36)
     private String chaveAdministrador;
 
-    private Boolean ativa;
+    @Builder.Default
+    private Boolean ativa = true;
 
     @Column(name = "valor_total_geral", precision = 10, scale = 2)
     private BigDecimal valorTotalGeral;
@@ -58,5 +63,12 @@ public class Compras {
     public void removeItem(ItemCompra item) {
         itens.remove(item);
         item.setCompra(null);
+    }
+
+    // Método útil para o Service: invalida a chave se a compra for editada após aprovação
+    public void invalidarAprovacao() {
+        this.chaveAdministrador = null;
+        this.statusCompra = StatusCompra.PENDENTE;
+        this.justificativaRecusa = null;
     }
 }

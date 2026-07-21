@@ -3,14 +3,19 @@ package br.com.drs.radiotv_pro_escritorio.mapper;
 import br.com.drs.radiotv_pro_escritorio.dto.ComprasDTO;
 import br.com.drs.radiotv_pro_escritorio.model.Compras;
 import org.mapstruct.Mapper;
-import org.mapstruct.MappingTarget;
+import org.mapstruct.Mapping;
+import java.util.List;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", uses = {ItemCompraMapper.class})
 public interface ComprasMapper {
 
-    ComprasDTO toDTO(Compras compras);
+    @Mapping(target = "funcionarioId", source = "funcionario.funcionarioId")
+    @Mapping(target = "funcionarioNome", source = "funcionario.nome")
+    ComprasDTO toDTO(Compras entity);
 
+    @Mapping(target = "funcionario", ignore = true)
+    @Mapping(target = "chaveAdministrador", ignore = true) // Segurança extra no mapper
     Compras toEntity(ComprasDTO dto);
 
-    void updateEntityFromDto(ComprasDTO dto, @MappingTarget Compras compras);
+    List<ComprasDTO> toDTOList(List<Compras> entities);
 }

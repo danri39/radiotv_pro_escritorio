@@ -51,6 +51,7 @@ public class SecurityConfig {
                     req.requestMatchers("/api/v1/programas/**").permitAll();
                     req.requestMatchers("/api/v1/contratos/**").permitAll();
                     req.requestMatchers("/api/v1/vendedor/**").permitAll();
+                    req.requestMatchers("/api/v1/compras/**").permitAll();
 
                     req.anyRequest().authenticated();
                 })

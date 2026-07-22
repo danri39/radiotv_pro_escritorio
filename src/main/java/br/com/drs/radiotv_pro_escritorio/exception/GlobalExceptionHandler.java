@@ -1,5 +1,6 @@
 package br.com.drs.radiotv_pro_escritorio.exception;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -58,5 +59,20 @@ public class GlobalExceptionHandler {
         );
         // Opcional: log.error("Erro inesperado: ", ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErroResponse> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+        String mensagem = "Ocorreu um erro de integridade de dados. Verifique se o nome ou e-mail já está em uso.";
+
+        // Tenta extrair uma mensagem mais específica baseada no erro do SQL Server
+        if (ex.getMessage() != null && ex.getMessage().contains("UKplwlwihgql09syg15ux4p1kgo")) {
+            mensagem = "Já existe um usuário cadastrado com este Nome ou E-mail.";
+        } else if (ex.getMessage() != null && ex.getMessage().contains("duplicate key")) {
+            mensagem = "Este registro já existe no sistema. Verifique os dados informados.";
+        }
+
+        ErroResponse response = new ErroResponse(mensagem, HttpStatus.CONFLICT.value(), "Conflito de Dados");
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
     }
 }

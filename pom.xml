@@ -75,9 +75,13 @@
             <optional>true</optional>
         </dependency>
         <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>2.5.0</version>
+        </dependency>
+        <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <!-- CORRIGIDO: 1.18.46 não existe. 1.18.34 é a versão estável mais recente -->
             <version>1.18.34</version>
             <scope>provided</scope>
         </dependency>

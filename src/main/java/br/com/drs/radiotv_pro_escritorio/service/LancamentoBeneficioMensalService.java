@@ -12,7 +12,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import br.com.drs.radiotv_pro_escritorio.exception.EntidadeNaoEncontradaException;
+import br.com.drs.radiotv_pro_escritorio.exception.RegraNegocioException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -44,7 +45,7 @@ public class LancamentoBeneficioMensalService {
                 .orElseThrow(() -> new RuntimeException("Plano de benefício não encontrado com ID: " + dto.getPlanoBeneficioId()));
 
         // TRAVA: Evita duplicação (funcionário + plano + mês)
-        if (repository.existsByFuncionario_FuncionarioIdAndPlanoBeneficio_PlanoBeneficioIdAndMesReferenciaAndAtivoTrue(
+        if (repository.existsByFuncionario_IdAndPlanoBeneficio_PlanoBeneficioIdAndMesReferenciaAndAtivoTrue(
                 dto.getFuncionarioId(), dto.getPlanoBeneficioId(), dto.getMesReferencia())) {
             throw new RuntimeException(
                     String.format("Já existe um lançamento para o funcionário %s no plano %s no mês %s. " +
@@ -201,7 +202,7 @@ public class LancamentoBeneficioMensalService {
     @Transactional(readOnly = true)
     public long contarLancamentosPorFuncionarioEMes(Long funcionarioId, String mesReferencia) {
         validarFormatoMes(mesReferencia);
-        return repository.countByFuncionario_FuncionarioIdAndMesReferenciaAndAtivoTrue(funcionarioId, mesReferencia);
+        return repository.countByFuncionario_IdAndMesReferenciaAndAtivoTrue(funcionarioId, mesReferencia);
     }
 
     @Transactional(readOnly = true)

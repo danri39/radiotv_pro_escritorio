@@ -11,14 +11,17 @@ import br.com.drs.radiotv_pro_escritorio.model.enuns.StatusCompra;
 import br.com.drs.radiotv_pro_escritorio.repository.ComprasRepository;
 import br.com.drs.radiotv_pro_escritorio.repository.FuncionarioRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import br.com.drs.radiotv_pro_escritorio.exception.EntidadeNaoEncontradaException;
+import br.com.drs.radiotv_pro_escritorio.exception.RegraNegocioException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ComprasService {
@@ -26,9 +29,10 @@ public class ComprasService {
     private final ComprasRepository comprasRepository;
     private final FuncionarioRepository funcionarioRepository;
     private final ComprasMapper comprasMapper;
+    private final PagamentosService pagamentosService;
 
     // ==========================================
-    // 1. CRIAR COMPRA (Usuário do Escritório)
+    // 1. CRIAR COMPRA
     // ==========================================
     @Transactional
     public ComprasDTO criarCompra(ComprasDTO dto) {
@@ -45,7 +49,6 @@ public class ComprasService {
         compra.setAtiva(true);
         compra.setDataCompra(dto.getDataCompra() != null ? dto.getDataCompra() : LocalDate.now());
 
-        // Calcula o valor total geral somando os itens
         BigDecimal total = compra.getItens().stream()
                 .map(ItemCompra::getValorTotal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -56,7 +59,7 @@ public class ComprasService {
     }
 
     // ==========================================
-    // 2 a 6. LISTAGENS (mantidos como antes)
+    // 2 a 6. LISTAGENS
     // ==========================================
     @Transactional(readOnly = true)
     public List<ComprasDTO> listarTodas() {
@@ -73,7 +76,7 @@ public class ComprasService {
     @Transactional(readOnly = true)
     public List<ComprasDTO> listarPorFuncionario(Long funcionarioId) {
         return comprasMapper.toDTOList(
-                comprasRepository.findByFuncionario_FuncionarioIdOrderByDataCompraDesc(funcionarioId)
+                comprasRepository.findByFuncionario_IdOrderByDataCompraDesc(funcionarioId)
         );
     }
 
@@ -90,7 +93,7 @@ public class ComprasService {
     }
 
     // ==========================================
-    // 7. EDITAR COMPRA (Usuário do Escritório)
+    // 7. EDITAR COMPRA
     // ==========================================
     @Transactional
     public ComprasDTO editarCompra(Long id, ComprasDTO dto) {
@@ -107,7 +110,6 @@ public class ComprasService {
 
         compra.setDataCompra(dto.getDataCompra());
 
-        // Atualiza os itens
         compra.getItens().clear();
         if (dto.getItens() != null) {
             for (ItemCompraDTO itemDto : dto.getItens()) {
@@ -116,13 +118,11 @@ public class ComprasService {
             }
         }
 
-        // Recalcula o total
         BigDecimal total = compra.getItens().stream()
                 .map(ItemCompra::getValorTotal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         compra.setValorTotalGeral(total);
 
-        // Se estava aprovada, perde a aprovação ao ser editada
         if (compra.getStatusCompra() == StatusCompra.APROVADA) {
             compra.invalidarAprovacao();
         }
@@ -132,8 +132,7 @@ public class ComprasService {
     }
 
     // ==========================================
-    // 8 a 12. APROVAR, RECUSAR, PAGAR, INATIVAR, REATIVAR
-    // (mantidos como antes)
+    // 8. APROVAR COMPRA (COM GATILHO AUTOMÁTICO)
     // ==========================================
     @Transactional
     public ComprasDTO aprovarCompra(Long id) {
@@ -149,9 +148,17 @@ public class ComprasService {
         compra.setJustificativaRecusa(null);
 
         Compras compraSalva = comprasRepository.save(compra);
+
+        // GATILHO: Cria automaticamente a pendência de pagamento no módulo financeiro
+        pagamentosService.lancarPagamentoCompra(compraSalva);
+        log.info("Compra {} aprovada. Pagamento automático lançado no módulo financeiro.", id);
+
         return comprasMapper.toDTO(compraSalva);
     }
 
+    // ==========================================
+    // 9. RECUSAR COMPRA
+    // ==========================================
     @Transactional
     public ComprasDTO recusarCompra(Long id, String justificativa) {
         Compras compra = comprasRepository.findById(id)
@@ -173,6 +180,9 @@ public class ComprasService {
         return comprasMapper.toDTO(compraSalva);
     }
 
+    // ==========================================
+    // 10. PAGAR COMPRA
+    // ==========================================
     @Transactional
     public ComprasDTO pagarCompra(Long id) {
         Compras compra = comprasRepository.findById(id)
@@ -193,6 +203,9 @@ public class ComprasService {
         return comprasMapper.toDTO(compraSalva);
     }
 
+    // ==========================================
+    // 11. INATIVAR COMPRA
+    // ==========================================
     @Transactional
     public void inativarCompra(Long id) {
         Compras compra = comprasRepository.findById(id)
@@ -206,6 +219,9 @@ public class ComprasService {
         comprasRepository.save(compra);
     }
 
+    // ==========================================
+    // 12. REATIVAR COMPRA
+    // ==========================================
     @Transactional
     public void reativarCompra(Long id) {
         Compras compra = comprasRepository.findById(id)

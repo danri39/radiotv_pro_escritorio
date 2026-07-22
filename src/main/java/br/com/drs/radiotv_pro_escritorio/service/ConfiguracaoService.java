@@ -9,7 +9,8 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-
+import br.com.drs.radiotv_pro_escritorio.exception.EntidadeNaoEncontradaException;
+import br.com.drs.radiotv_pro_escritorio.exception.RegraNegocioException;
 import java.util.List;
 import java.util.Optional;
 

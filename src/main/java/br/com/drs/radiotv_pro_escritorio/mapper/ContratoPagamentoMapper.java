@@ -11,7 +11,7 @@ import java.util.List;
 public interface ContratoPagamentoMapper {
 
     @Mapping(target = "contratoId", source = "contrato.contratoId")
-    @Mapping(target = "clienteNome", source = "contrato.cliente.nome")
+    @Mapping(target = "clienteNome", source = "contrato.cliente.numero")
     @Mapping(target = "vendedorNome", source = "contrato.vendedor.funcionario.nome")
     @Mapping(target = "agenciaNome", source = "contrato.agencia.nomeFantasia")
     @Mapping(target = "totalParcelas", source = "contrato.quantidadeParcelas")

@@ -1,13 +1,10 @@
 package br.com.drs.radiotv_pro_escritorio.service;
 
 import br.com.drs.radiotv_pro_escritorio.dto.PagamentosDTO;
-import br.com.drs.radiotv_pro_escritorio.mapper.PagamentosMapper;
-import br.com.drs.radiotv_pro_escritorio.model.Agencia;
-import br.com.drs.radiotv_pro_escritorio.model.Compras;
-import br.com.drs.radiotv_pro_escritorio.model.ContratoPagamento;
-import br.com.drs.radiotv_pro_escritorio.model.Pagamentos;
+import br.com.drs.radiotv_pro_escritorio.model.*;
 import br.com.drs.radiotv_pro_escritorio.model.enuns.StatusPagamento;
 import br.com.drs.radiotv_pro_escritorio.model.enuns.TipoPagamento;
+import br.com.drs.radiotv_pro_escritorio.mapper.PagamentosMapper;
 import br.com.drs.radiotv_pro_escritorio.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,7 +12,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-
+import br.com.drs.radiotv_pro_escritorio.exception.EntidadeNaoEncontradaException;
+import br.com.drs.radiotv_pro_escritorio.exception.RegraNegocioException;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.file.Files;
@@ -42,7 +40,7 @@ public class PagamentosService {
     private String diretorioDocumentosAgencia;
 
     // ==========================================
-    // 1. CRIAR PAGAMENTO MANUAL (Conta Diversa - Escritório)
+    // 1. CRIAR CONTA DIVERSA
     // ==========================================
     @Transactional
     public PagamentosDTO criarContaDiversa(PagamentosDTO dto) {
@@ -59,13 +57,8 @@ public class PagamentosService {
     }
 
     // ==========================================
-    // 2. LANÇAR COMISSÃO DE AGÊNCIA (Automático - chamado pelo ContratoPagamentoService)
+    // 2. LANÇAR COMISSÃO DE AGÊNCIA (Automático)
     // ==========================================
-    /**
-     * Este método é chamado AUTOMATICAMENTE quando o cliente paga uma parcela.
-     * Cria um lançamento de comissão de agência com status AGUARDANDO_DOCUMENTO.
-     * A agência precisará fazer upload da NF para que o pagamento seja liberado.
-     */
     @Transactional
     public PagamentosDTO lancarComissaoAgencia(
             Agencia agencia,
@@ -73,7 +66,6 @@ public class PagamentosService {
             BigDecimal valorComissao,
             LocalDate dataLancamento) {
 
-        // Evita duplicação
         if (repository.existsByTipoPagamentoAndContratoPagamento_ContratoPagamentoId(
                 TipoPagamento.COMISSAO_AGENCIA, parcela.getContratoPagamentoId())) {
             log.warn("Comissão de agência já lançada para a parcela {}. Ignorando.", parcela.getContratoPagamentoId());
@@ -106,15 +98,10 @@ public class PagamentosService {
     }
 
     // ==========================================
-    // 3. LANÇAR PAGAMENTO DE COMPRA APROVADA (Automático - chamado pelo ComprasService)
+    // 3. LANÇAR PAGAMENTO DE COMPRA (Automático)
     // ==========================================
-    /**
-     * Este método é chamado AUTOMATICAMENTE quando o administrador aprova uma compra.
-     * Cria um lançamento de pagamento vinculado à compra.
-     */
     @Transactional
     public PagamentosDTO lancarPagamentoCompra(Compras compra) {
-        // Evita duplicação
         if (repository.existsByTipoPagamentoAndCompra_ComprasId(TipoPagamento.COMPRA_APROVADA, compra.getComprasId())) {
             log.warn("Pagamento já lançado para a compra {}. Ignorando.", compra.getComprasId());
             return null;
@@ -144,7 +131,34 @@ public class PagamentosService {
     }
 
     // ==========================================
-    // 4. LISTAGENS
+    // 4. LANÇAR PAGAMENTO DE FOLHA (NOVO - Automático)
+    // ==========================================
+    @Transactional
+    public Long lancarPagamentoFolha(FolhaPagamento folha) {
+        String descricao = String.format(
+                "Folha de Pagamento - %s - Competência: %s",
+                folha.getFuncionario().getNome(),
+                folha.getMesReferencia()
+        );
+
+        Pagamentos pagamento = Pagamentos.builder()
+                .tipoPagamento(TipoPagamento.SALARIO)
+                .statusPagamento(StatusPagamento.PRONTO_PARA_PAGAMENTO)
+                .descricao(descricao)
+                .beneficiario(folha.getFuncionario().getNome())
+                .valor(folha.getSalarioLiquido())
+                .dataVencimento(folha.getDataFechamento())
+                .funcionario(folha.getFuncionario())
+                .ativo(true)
+                .build();
+
+        Pagamentos salvo = repository.save(pagamento);
+        log.info("Pagamento de folha lançado automaticamente: {} - R$ {}", descricao, folha.getSalarioLiquido());
+        return salvo.getPagamentoId();
+    }
+
+    // ==========================================
+    // 5. LISTAGENS
     // ==========================================
     @Transactional(readOnly = true)
     public List<PagamentosDTO> listarTodos() {
@@ -207,7 +221,7 @@ public class PagamentosService {
     }
 
     // ==========================================
-    // 5. PORTAL DA AGÊNCIA: Listar comissões pendentes de documento
+    // 6. PORTAL DA AGÊNCIA
     // ==========================================
     @Transactional(readOnly = true)
     public List<PagamentosDTO> listarComissoesAgenciaAguardandoDocumento(Long agenciaId) {
@@ -216,16 +230,6 @@ public class PagamentosService {
         );
     }
 
-    // ==========================================
-    // 6. PORTAL DA AGÊNCIA: Upload do Documento da NF
-    // ==========================================
-    /**
-     * A agência faz upload da NF/Boleto. O sistema:
-     * 1. Valida se o pagamento pertence à agência logada
-     * 2. Salva o arquivo no disco
-     * 3. Registra o número do documento e o caminho do arquivo
-     * 4. Muda o status para PRONTO_PARA_PAGAMENTO
-     */
     @Transactional
     public PagamentosDTO registrarDocumentoAgencia(
             Long pagamentoId,
@@ -236,7 +240,6 @@ public class PagamentosService {
         Pagamentos pagamento = repository.findById(pagamentoId)
                 .orElseThrow(() -> new RuntimeException("Pagamento não encontrado com ID: " + pagamentoId));
 
-        // TRAVA DE SEGURANÇA: A agência só pode fazer upload de pagamentos dela
         if (pagamento.getAgencia() == null || !pagamento.getAgencia().getAgenciaId().equals(agenciaIdLogada)) {
             throw new RuntimeException("Acesso negado: este pagamento não pertence à sua agência.");
         }
@@ -245,10 +248,7 @@ public class PagamentosService {
             throw new RuntimeException("Upload de documento permitido apenas para comissões de agência.");
         }
 
-        // Salva o arquivo no disco
         String caminhoArquivo = salvarArquivoDocumento(arquivo, pagamentoId);
-
-        // Registra o documento e muda o status
         pagamento.registrarDocumentoAgencia(numeroDocumento, caminhoArquivo);
         Pagamentos salvo = repository.save(pagamento);
 
@@ -256,9 +256,6 @@ public class PagamentosService {
         return mapper.toDTO(salvo);
     }
 
-    /**
-     * Salva o arquivo no sistema de arquivos e retorna o caminho relativo.
-     */
     private String salvarArquivoDocumento(MultipartFile arquivo, Long pagamentoId) throws IOException {
         Path diretorio = Paths.get(diretorioDocumentosAgencia);
         if (!Files.exists(diretorio)) {
@@ -278,12 +275,8 @@ public class PagamentosService {
     }
 
     // ==========================================
-    // 7. DAR BAIXA / PAGAR (Escritório)
+    // 7. PAGAR
     // ==========================================
-    /**
-     * O escritório dá baixa no pagamento.
-     * Para comissões de agência, EXIGE que o documento já tenha sido registrado.
-     */
     @Transactional
     public PagamentosDTO pagar(Long id, String formaPagamento) {
         Pagamentos pagamento = repository.findById(id)
@@ -293,7 +286,6 @@ public class PagamentosService {
             throw new RuntimeException("A forma de pagamento é obrigatória.");
         }
 
-        // O método helper da entidade valida as travas (comissão de agência precisa de documento)
         pagamento.marcarComoPago(LocalDate.now(), formaPagamento);
         Pagamentos salvo = repository.save(pagamento);
 
@@ -303,7 +295,7 @@ public class PagamentosService {
     }
 
     // ==========================================
-    // 8. CANCELAR PAGAMENTO (Administrador)
+    // 8. CANCELAR
     // ==========================================
     @Transactional
     public void cancelar(Long id, String motivo) {
@@ -316,7 +308,7 @@ public class PagamentosService {
     }
 
     // ==========================================
-    // 9. EDITAR PAGAMENTO MANUAL (apenas contas diversas pendentes)
+    // 9. EDITAR
     // ==========================================
     @Transactional
     public PagamentosDTO editar(Long id, PagamentosDTO dto) {
@@ -342,20 +334,15 @@ public class PagamentosService {
     }
 
     // ==========================================
-    // 10. JOB: Marcar pagamentos vencidos
+    // 10. LISTAR EM ATRASO
     // ==========================================
-    /**
-     * Job diário que poderia ser usado para gerar relatórios de atraso.
-     * Como o status não tem "VENCIDO" (usamos a data de vencimento para cálculo),
-     * este método apenas retorna a lista de pagamentos vencidos para o painel admin.
-     */
     @Transactional(readOnly = true)
     public List<PagamentosDTO> listarPagamentosEmAtraso() {
         return listarVencidos();
     }
 
     // ==========================================
-    // MÉTODO HELPER: Validação de dados básicos
+    // MÉTODO HELPER
     // ==========================================
     private void validarDadosBasicos(PagamentosDTO dto) {
         if (dto.getDescricao() == null || dto.getDescricao().isBlank()) {

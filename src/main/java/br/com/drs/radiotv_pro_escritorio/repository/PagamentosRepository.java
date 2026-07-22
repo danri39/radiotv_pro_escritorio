@@ -75,7 +75,7 @@ public interface PagamentosRepository extends JpaRepository<Pagamentos, Long>, J
     /**
      * Lista pagamentos vinculados a um funcionário específico (salários, vales, comissões)
      */
-    @Query("SELECT p FROM Pagamentos p WHERE p.funcionario.funcionarioId = :funcionarioId AND p.ativo = true " +
+    @Query("SELECT p FROM Pagamentos p WHERE p.funcionario.id = :funcionarioId AND p.ativo = true " +
             "ORDER BY p.dataVencimento DESC")
     List<Pagamentos> buscarPorFuncionario(@Param("funcionarioId") Long funcionarioId);
 

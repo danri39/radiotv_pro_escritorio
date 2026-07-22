@@ -1,17 +1,18 @@
 package br.com.drs.radiotv_pro_escritorio.service;
 
 import br.com.drs.radiotv_pro_escritorio.dto.ContratoPagamentoDTO;
-import br.com.drs.radiotv_pro_escritorio.mapper.ContratoPagamentoMapper;
 import br.com.drs.radiotv_pro_escritorio.model.Contrato;
 import br.com.drs.radiotv_pro_escritorio.model.ContratoPagamento;
 import br.com.drs.radiotv_pro_escritorio.model.enuns.StatusRecebimento;
+import br.com.drs.radiotv_pro_escritorio.mapper.ContratoPagamentoMapper;
 import br.com.drs.radiotv_pro_escritorio.repository.ContratoPagamentoRepository;
 import br.com.drs.radiotv_pro_escritorio.repository.ContratoRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import br.com.drs.radiotv_pro_escritorio.exception.EntidadeNaoEncontradaException;
+import br.com.drs.radiotv_pro_escritorio.exception.RegraNegocioException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -26,24 +27,17 @@ public class ContratoPagamentoService {
     private final ContratoPagamentoRepository repository;
     private final ContratoRepository contratoRepository;
     private final ContratoPagamentoMapper mapper;
-
-    // TODO: Injetar quando criarmos essas classes
-    // private final ComissaoVendedorService comissaoVendedorService;
-    // private final PagamentoService pagamentoService;
+    private final ComissaoVendedorService comissaoVendedorService;
+    private final PagamentosService pagamentosService;
 
     // ==========================================
-    // 1. GERAR PARCELAS AUTOMATICAMENTE (Gatilho ao criar contrato)
+    // 1. GERAR PARCELAS DO CONTRATO
     // ==========================================
-    /**
-     * Este método é chamado pelo ContratoService quando um contrato é criado.
-     * Gera N parcelas baseadas na quantidadeParcelas e valorParcelas do contrato.
-     */
     @Transactional
     public List<ContratoPagamentoDTO> gerarParcelasDoContrato(Long contratoId) {
         Contrato contrato = contratoRepository.findById(contratoId)
                 .orElseThrow(() -> new RuntimeException("Contrato não encontrado com ID: " + contratoId));
 
-        // Evita duplicação
         if (repository.existsByContrato_ContratoId(contratoId)) {
             throw new RuntimeException("Já existem parcelas geradas para este contrato.");
         }
@@ -63,7 +57,7 @@ public class ContratoPagamentoService {
             ContratoPagamento parcela = ContratoPagamento.builder()
                     .contrato(contrato)
                     .numeroParcela(i)
-                    .dataVencimento(dataBase.plusMonths(i - 1)) // Parcela 1 = mês atual, 2 = +1 mês, etc.
+                    .dataVencimento(dataBase.plusMonths(i - 1))
                     .valorParcela(contrato.getValorParcelas())
                     .statusRecebimento(StatusRecebimento.A_FATURAR)
                     .comissaoVendedorLancada(false)
@@ -75,7 +69,6 @@ public class ContratoPagamentoService {
 
         List<ContratoPagamento> parcelasSalvas = repository.saveAll(parcelas);
         log.info("Geradas {} parcelas para o contrato ID {}", parcelasSalvas.size(), contratoId);
-
         return mapper.toDTOList(parcelasSalvas);
     }
 
@@ -125,7 +118,7 @@ public class ContratoPagamentoService {
     }
 
     // ==========================================
-    // 3. FATURAR PARCELA (Escritório emite boleto/nota)
+    // 3. FATURAR PARCELA
     // ==========================================
     @Transactional
     public ContratoPagamentoDTO faturarParcela(Long id, String numeroFatura) {
@@ -144,15 +137,8 @@ public class ContratoPagamentoService {
     }
 
     // ==========================================
-    // 4. DAR BAIXA / RECEBER PAGAMENTO (Escritório)
+    // 4. RECEBER PAGAMENTO (COM GATILHO AUTOMÁTICO)
     // ==========================================
-    /**
-     * Este é o método MAIS IMPORTANTE do fluxo financeiro.
-     * Ao dar baixa, o sistema:
-     * 1. Marca a parcela como RECEBIDA
-     * 2. Dispara o cálculo da comissão do vendedor (cria ComissaoVendedor)
-     * 3. Dispara o cálculo da comissão da agência (cria lançamento em Pagamento)
-     */
     @Transactional
     public ContratoPagamentoDTO receberPagamento(Long id, BigDecimal valorRecebido) {
         ContratoPagamento parcela = repository.findById(id)
@@ -162,79 +148,54 @@ public class ContratoPagamentoService {
             throw new RuntimeException("O valor recebido deve ser maior que zero.");
         }
 
-        // Marca como recebida (método helper da entidade valida o status)
         parcela.marcarComoRecebido(LocalDate.now(), valorRecebido);
         ContratoPagamento salva = repository.save(parcela);
 
         log.info("Parcela {} do contrato {} recebida. Valor: R$ {}",
                 parcela.getNumeroParcela(), parcela.getContrato().getContratoId(), valorRecebido);
 
-        // ==========================================
-        // TRIGGER: DISPARAR COMISSÕES
-        // ==========================================
+        // DISPARA AS COMISSÕES AUTOMATICAMENTE
         dispararComissoes(parcela, valorRecebido);
 
         return mapper.toDTO(salva);
     }
 
     // ==========================================
-    // 5. MÉTODO INTERNO: Disparar Comissões
+    // 5. MÉTODO INTERNO: DISPARAR COMISSÕES
     // ==========================================
-    /**
-     * Calcula e lança as comissões do vendedor e da agência.
-     * A comissão é sempre sobre o VALOR EFETIVAMENTE RECEBIDO (nunca sobre valor futuro).
-     */
     private void dispararComissoes(ContratoPagamento parcela, BigDecimal valorRecebido) {
         Contrato contrato = parcela.getContrato();
 
-        // --- COMISSÃO DO VENDEDOR ---
-        if (!parcela.getComissaoVendedorLancada()) {
-            int percentualVendedor = contrato.getVendedor().getComissaoVendas(); // Ex: 10
-            BigDecimal comissaoVendedor = valorRecebido
-                    .multiply(BigDecimal.valueOf(percentualVendedor))
-                    .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-
-            // TODO: Quando criarmos o ComissaoVendedorService, descomentar:
-            // comissaoVendedorService.lancarComissao(
-            //     contrato.getVendedor(),
-            //     parcela,
-            //     comissaoVendedor,
-            //     LocalDate.now()
-            // );
-
-            parcela.setComissaoVendedorLancada(true);
-            log.info("Comissão do vendedor lançada: R$ {} ({}%)", comissaoVendedor, percentualVendedor);
+        // COMISSÃO DO VENDEDOR (Versão segura contra NullPointer)
+        if (Boolean.FALSE.equals(parcela.getComissaoVendedorLancada()) && contrato.getVendedor() != null) {
+            try {
+                comissaoVendedorService.lancarComissao(contrato.getVendedor(), parcela, valorRecebido);
+                parcela.setComissaoVendedorLancada(true);
+                log.info("Comissão do vendedor lançada com sucesso para a parcela {}", parcela.getNumeroParcela());
+            } catch (Exception e) {
+                log.error("Falha ao lançar comissão do vendedor na parcela {}: {}", parcela.getNumeroParcela(), e.getMessage());
+                // Não interrompe o recebimento, apenas registra o erro no log para o admin verificar
+            }
         }
 
-        // --- COMISSÃO DA AGÊNCIA (só se houver agência no contrato) ---
-        if (contrato.getAgencia() != null && !parcela.getComissaoAgenciaLancada()) {
-            int percentualAgencia = contrato.getAgencia().getComissaoVendas(); // Ex: 20
-            BigDecimal comissaoAgencia = valorRecebido
+        // COMISSÃO DA AGÊNCIA
+        if (!parcela.getComissaoAgenciaLancada() && contrato.getAgencia() != null) {
+            int percentualAgencia = contrato.getAgencia().getComissaoVendas();
+            BigDecimal valorComissaoAgencia = valorRecebido
                     .multiply(BigDecimal.valueOf(percentualAgencia))
                     .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
 
-            // TODO: Quando criarmos o PagamentoService, descomentar:
-            // pagamentoService.lancarComissaoAgencia(
-            //     contrato.getAgencia(),
-            //     parcela,
-            //     comissaoAgencia,
-            //     LocalDate.now()
-            // );
-
+            pagamentosService.lancarComissaoAgencia(contrato.getAgencia(), parcela, valorComissaoAgencia, LocalDate.now());
             parcela.setComissaoAgenciaLancada(true);
-            log.info("Comissão da agência lançada: R$ {} ({}%)", comissaoAgencia, percentualAgencia);
+            log.info("Comissão da agência lançada para a parcela {}", parcela.getNumeroParcela());
         }
 
         repository.save(parcela);
     }
 
     // ==========================================
-    // 6. JOB: Marcar parcelas vencidas como ATRASADO
+    // 6. JOB: MARCAR PARCELAS ATRASADAS
     // ==========================================
-    /**
-     * Este método deve ser chamado por um @Scheduled job que roda diariamente.
-     * Varre todas as parcelas vencidas e não recebidas e marca como ATRASADO.
-     */
     @Transactional
     public int marcarParcelasAtrasadas() {
         LocalDate hoje = LocalDate.now();
@@ -259,7 +220,7 @@ public class ContratoPagamentoService {
     }
 
     // ==========================================
-    // 7. CANCELAR PARCELA (Administrador)
+    // 7. CANCELAR PARCELA
     // ==========================================
     @Transactional
     public void cancelarParcela(Long id, String motivo) {
@@ -278,7 +239,7 @@ public class ContratoPagamentoService {
     }
 
     // ==========================================
-    // 8. LISTAR PENDÊNCIAS DE COMISSÃO (Painel Admin)
+    // 8. LISTAR PENDÊNCIAS
     // ==========================================
     @Transactional(readOnly = true)
     public List<ContratoPagamentoDTO> listarComissoesVendedorPendentes() {

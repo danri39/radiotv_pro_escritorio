@@ -19,7 +19,7 @@ public interface PagamentosMapper {
     @Mapping(target = "contratoPagamentoId", source = "contratoPagamento.contratoPagamentoId")
     @Mapping(target = "numeroParcela", source = "contratoPagamento.numeroParcela")
     @Mapping(target = "compraId", source = "compra.comprasId")
-    @Mapping(target = "funcionarioId", source = "funcionario.funcionarioId")
+    @Mapping(target = "funcionarioId", source = "funcionario.id") // CORREÇÃO: 'id' em vez de 'funcionarioId'
     @Mapping(target = "funcionarioNome", source = "funcionario.nome")
     PagamentosDTO toDTO(Pagamentos entity);
 

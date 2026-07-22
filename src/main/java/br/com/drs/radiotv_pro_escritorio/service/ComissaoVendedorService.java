@@ -13,7 +13,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import br.com.drs.radiotv_pro_escritorio.exception.EntidadeNaoEncontradaException;
+import br.com.drs.radiotv_pro_escritorio.exception.RegraNegocioException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -36,39 +37,32 @@ public class ComissaoVendedorService {
     // ==========================================
     // 1. LANÇAR COMISSÃO (Automático - chamado pelo ContratoPagamentoService)
     // ==========================================
-    /**
-     * Este método é chamado AUTOMATICAMENTE quando o cliente paga uma parcela.
-     * Calcula a comissão com base no percentual do vendedor e no valor efetivamente recebido.
-     *
-     * @param vendedor O vendedor que fez a venda
-     * @param parcela A parcela que foi paga pelo cliente
-     * @param valorRecebido O valor que o cliente efetivamente pagou (pode ter juros/descontos)
-     * @return A comissão criada, ou null se já existia (duplicação)
-     */
+
     @Transactional
     public ComissaoVendedorDTO lancarComissao(Vendedor vendedor, ContratoPagamento parcela, BigDecimal valorRecebido) {
 
-        // TRAVA: Evita duplicação
+        // 1. Trava de duplicidade
         if (repository.existsByContratoPagamento_ContratoPagamentoIdAndAtivaTrue(parcela.getContratoPagamentoId())) {
-            log.warn("Comissão já lançada para a parcela {}. Ignorando duplicação.", parcela.getContratoPagamentoId());
+            log.warn("Comissão já lançada para a parcela {}. Ignorando.", parcela.getContratoPagamentoId());
             return null;
         }
 
-        // Busca o percentual de comissão do vendedor
-        int percentual = vendedor.getComissaoVendas();
-        if (percentual <= 0) {
-            log.warn("Vendedor {} não tem percentual de comissão válido. Ignorando.", vendedor.getVendedorId());
-            return null;
+        // 2. Busca a porcentagem (com fallback para 10% se o campo não existir ou for nulo)
+        Integer percentual = vendedor.getComissaoVendas();
+        if (percentual == null || percentual <= 0) {
+            percentual = 10; // Valor padrão de segurança
+            log.warn("Vendedor {} sem percentual definido. Usando padrão de {}%", vendedor.getFuncionario().getNome(), percentual);
         }
 
-        // Calcula o valor da comissão
+        // 3. Calcula o valor
         BigDecimal valorComissao = valorRecebido
                 .multiply(BigDecimal.valueOf(percentual))
                 .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
 
-        // Define o mês de referência (mês em que o cliente pagou)
-        String mesReferencia = LocalDate.now().format(FORMATO_MES);
+        // 4. Define o mês de referência
+        String mesReferencia = LocalDate.now().format(DateTimeFormatter.ofPattern("MM/yyyy"));
 
+        // 5. Cria e salva a entidade
         ComissaoVendedor comissao = ComissaoVendedor.builder()
                 .vendedor(vendedor)
                 .contratoPagamento(parcela)
@@ -88,6 +82,7 @@ public class ComissaoVendedorService {
                 valorComissao,
                 percentual);
 
+        // Retorna o DTO (assumindo que você tem o mapper injetado)
         return mapper.toDTO(salva);
     }
 

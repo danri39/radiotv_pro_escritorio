@@ -11,7 +11,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import br.com.drs.radiotv_pro_escritorio.exception.EntidadeNaoEncontradaException;
+import br.com.drs.radiotv_pro_escritorio.exception.RegraNegocioException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -25,30 +26,18 @@ public class FolhaPagamentoService {
     private final FolhaPagamentoRepository repository;
     private final FuncionarioRepository funcionarioRepository;
     private final FolhaPagamentoMapper mapper;
-
-    // Services integrados
     private final ComissaoVendedorService comissaoVendedorService;
     private final LancamentoBeneficioMensalService lancamentoBeneficioService;
     private final PagamentosService pagamentosService;
 
     // ==========================================
-    // 1. FECHAR FOLHA PARA UM FUNCIONÁRIO (RH/Escritório)
+    // 1. FECHAR FOLHA PARA UM FUNCIONÁRIO
     // ==========================================
-    /**
-     * Fecha a folha de pagamento para um funcionário específico em um mês.
-     * O sistema:
-     * 1. Busca o salário bruto do Funcionario
-     * 2. Busca comissões pendentes do vendedor (se aplicável) e processa
-     * 3. Busca benefícios do mês e soma
-     * 4. Aplica outros descontos (VT, VR, INSS, IR) - TODO: implementar cálculo
-     * 5. Cria a FolhaPagamento com status = FECHADA
-     */
     @Transactional
     public FolhaPagamentoDTO fecharFolhaFuncionario(Long funcionarioId, String mesReferencia) {
         validarFormatoMes(mesReferencia);
 
-        // TRAVA: Evita duplicação
-        if (repository.existsByFuncionario_FuncionarioIdAndMesReferenciaAndAtivaTrue(funcionarioId, mesReferencia)) {
+        if (repository.existsByFuncionario_IdAndMesReferenciaAndAtivaTrue(funcionarioId, mesReferencia)) {
             throw new RuntimeException(
                     String.format("Já existe uma folha para o funcionário %d no mês %s.", funcionarioId, mesReferencia)
             );
@@ -57,58 +46,31 @@ public class FolhaPagamentoService {
         Funcionario funcionario = funcionarioRepository.findById(funcionarioId)
                 .orElseThrow(() -> new RuntimeException("Funcionário não encontrado com ID: " + funcionarioId));
 
-        // ==========================================
-        // CALCULAR PROVENTOS
-        // ==========================================
         BigDecimal salarioBruto = funcionario.getSalarioBruto() != null
                 ? funcionario.getSalarioBruto()
                 : BigDecimal.ZERO;
 
         BigDecimal totalComissoes = BigDecimal.ZERO;
 
-        // Se o funcionário é vendedor, processa as comissões
         if (funcionario.getVendedor() != null && funcionario.getVendedor()) {
-            // Busca o vendedor vinculado ao funcionário
-            // TODO: Buscar Vendedor pelo funcionarioId (precisa de VendedorRepository)
-            // Por enquanto, vamos assumir que o ComissaoVendedorService tem um método para buscar por funcionarioId
-
-            // Soma as comissões pendentes do mês
             totalComissoes = comissaoVendedorService.somarComissoesPendentes(funcionarioId, mesReferencia);
-
-            // Processa as comissões (marca como PROCESSADA e vincula à folha)
-            // TODO: Precisa do vendedorId para chamar processarEmLote
-            // comissaoVendedorService.processarEmLote(vendedorId, mesReferencia, folhaId);
         }
 
         BigDecimal totalProventos = salarioBruto.add(totalComissoes);
 
-        // ==========================================
-        // CALCULAR DESCONTOS
-        // ==========================================
-
-        // Busca benefícios do mês (plano de saúde + coparticipações)
         BigDecimal totalBeneficios = lancamentoBeneficioService.somarTotalBeneficios(funcionarioId, mesReferencia);
 
-        // TODO: Calcular outros descontos (VT, VR, INSS, IR)
-        // Por enquanto, vamos usar os descontosFixos do Funcionario
         BigDecimal totalOutrosDescontos = funcionario.getDescontosFixos() != null
                 ? funcionario.getDescontosFixos()
                 : BigDecimal.ZERO;
 
         BigDecimal totalDescontos = totalBeneficios.add(totalOutrosDescontos);
-
-        // ==========================================
-        // CALCULAR SALÁRIO LÍQUIDO
-        // ==========================================
         BigDecimal salarioLiquido = totalProventos.subtract(totalDescontos);
 
-        // ==========================================
-        // CRIAR A FOLHA
-        // ==========================================
         FolhaPagamento folha = FolhaPagamento.builder()
                 .funcionario(funcionario)
                 .mesReferencia(mesReferencia)
-                .competencia(mesReferencia) // Por enquanto, competência = mês de referência
+                .competencia(mesReferencia)
                 .dataFechamento(LocalDate.now())
                 .salarioBruto(salarioBruto)
                 .totalComissoes(totalComissoes)
@@ -130,12 +92,8 @@ public class FolhaPagamentoService {
     }
 
     // ==========================================
-    // 2. FECHAR FOLHA PARA TODOS OS FUNCIONÁRIOS (Processo em Lote)
+    // 2. FECHAR FOLHA MENSAL EM LOTE
     // ==========================================
-    /**
-     * Fecha a folha de todos os funcionários ativos em um mês.
-     * Usado pelo RH no fechamento mensal.
-     */
     @Transactional
     public List<FolhaPagamentoDTO> fecharFolhaMensal(String mesReferencia) {
         validarFormatoMes(mesReferencia);
@@ -150,7 +108,6 @@ public class FolhaPagamentoService {
             } catch (Exception e) {
                 log.error("Erro ao fechar folha para funcionário {} no mês {}: {}",
                         funcionario.getNome(), mesReferencia, e.getMessage());
-                // Continua processando os outros funcionários
             }
         }
 
@@ -200,13 +157,8 @@ public class FolhaPagamentoService {
     }
 
     // ==========================================
-    // 4. EDITAR FOLHA (Apenas quando ABERTA)
+    // 4. EDITAR FOLHA
     // ==========================================
-    /**
-     * Permite editar valores da folha (ex: ajustar comissões, benefícios, outros descontos).
-     * Só pode ser editada se status = ABERTA.
-     * Após edição, recalcula os totais automaticamente.
-     */
     @Transactional
     public FolhaPagamentoDTO editar(Long id, FolhaPagamentoDTO dto) {
         FolhaPagamento folha = repository.findById(id)
@@ -217,7 +169,6 @@ public class FolhaPagamentoService {
                     + folha.getStatusFolha().getDescricao());
         }
 
-        // Atualiza valores (permitindo ajustes manuais)
         if (dto.getTotalComissoes() != null) {
             folha.setTotalComissoes(dto.getTotalComissoes());
         }
@@ -231,22 +182,16 @@ public class FolhaPagamentoService {
             folha.setObservacao(dto.getObservacao());
         }
 
-        // Recalcula os totais
         folha.recalcularTotais();
 
         FolhaPagamento salva = repository.save(folha);
-
         log.info("Folha {} editada. Novo líquido: R$ {}", id, folha.getSalarioLiquido());
-
         return mapper.toDTO(salva);
     }
 
     // ==========================================
-    // 5. PAGAR FOLHA (Escritório)
+    // 5. PAGAR FOLHA (COM GATILHO AUTOMÁTICO)
     // ==========================================
-    /**
-     * Marca a folha como PAGA e gera um lançamento no módulo de Pagamentos.
-     */
     @Transactional
     public FolhaPagamentoDTO pagarFolha(Long id, String formaPagamento) {
         FolhaPagamento folha = repository.findById(id)
@@ -257,12 +202,8 @@ public class FolhaPagamentoService {
                     + folha.getStatusFolha().getDescricao());
         }
 
-        // TODO: Criar lançamento em Pagamentos (tipo = SALARIO)
-        // PagamentosDTO pagamento = pagamentosService.lancarPagamentoFolha(folha);
-        // Long pagamentoId = pagamento.getPagamentoId();
-
-        // Por enquanto, vamos apenas marcar como paga sem gerar o pagamento
-        Long pagamentoId = null; // TODO: substituir pelo ID real do pagamento
+        // GATILHO: Lança a despesa de salário no módulo de Pagamentos
+        Long pagamentoId = pagamentosService.lancarPagamentoFolha(folha);
 
         folha.marcarComoPaga(LocalDate.now(), formaPagamento, pagamentoId);
         FolhaPagamento salva = repository.save(folha);
@@ -274,7 +215,7 @@ public class FolhaPagamentoService {
     }
 
     // ==========================================
-    // 6. CANCELAR FOLHA (Administrador)
+    // 6. CANCELAR FOLHA
     // ==========================================
     @Transactional
     public void cancelar(Long id, String motivo) {
@@ -283,12 +224,11 @@ public class FolhaPagamentoService {
 
         folha.cancelar();
         repository.save(folha);
-
         log.info("Folha {} cancelada. Motivo: {}", id, motivo);
     }
 
     // ==========================================
-    // 7. RELATÓRIOS FINANCEIROS
+    // 7. RELATÓRIOS
     // ==========================================
     @Transactional(readOnly = true)
     public BigDecimal somarTotalLiquidoPagoPorMes(String mesReferencia) {
@@ -315,7 +255,7 @@ public class FolhaPagamentoService {
     }
 
     // ==========================================
-    // 8. CONTAGENS PARA DASHBOARD
+    // 8. DASHBOARD
     // ==========================================
     @Transactional(readOnly = true)
     public long contarFolhasPorStatus(StatusFolha status) {
@@ -329,7 +269,7 @@ public class FolhaPagamentoService {
     }
 
     // ==========================================
-    // MÉTODO HELPER: Validação do formato do mês
+    // HELPER
     // ==========================================
     private void validarFormatoMes(String mesReferencia) {
         if (mesReferencia == null || !mesReferencia.matches("\\d{2}/\\d{4}")) {

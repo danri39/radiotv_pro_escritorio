@@ -9,7 +9,8 @@ import java.util.List;
 @Mapper(componentModel = "spring", uses = {ItemCompraMapper.class})
 public interface ComprasMapper {
 
-    @Mapping(target = "funcionarioId", source = "funcionario.funcionarioId")
+    // CORREÇÃO AQUI: de "funcionario.id" para "funcionario.id"
+    @Mapping(target = "funcionarioId", source = "funcionario.id")
     @Mapping(target = "funcionarioNome", source = "funcionario.nome")
     ComprasDTO toDTO(Compras entity);
 

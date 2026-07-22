@@ -14,7 +14,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import br.com.drs.radiotv_pro_escritorio.exception.EntidadeNaoEncontradaException;
+import br.com.drs.radiotv_pro_escritorio.exception.RegraNegocioException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -47,14 +48,15 @@ public class GerencialService {
     // ==========================================
     @Transactional(readOnly = true)
     public GerencialComercialDTO gerarVisaoComercial(String mesReferencia) {
-        if (mesReferencia == null || mesReferencia.isBlank()) {
-            mesReferencia = LocalDate.now().format(FORMATO_MES);
-        }
+        // CORREÇÃO: Usar variável final em vez de reatribuir o parâmetro
+        final String mesRef = (mesReferencia == null || mesReferencia.isBlank())
+                ? LocalDate.now().format(FORMATO_MES)
+                : mesReferencia;
 
-        log.info("Gerando visão comercial para o mês {}", mesReferencia);
+        log.info("Gerando visão comercial para o mês {}", mesRef);
 
-        LocalDate primeiroDia = getPrimeiroDiaDoMes(mesReferencia);
-        LocalDate ultimoDia = getUltimoDiaDoMes(mesReferencia);
+        LocalDate primeiroDia = getPrimeiroDiaDoMes(mesRef);
+        LocalDate ultimoDia = getUltimoDiaDoMes(mesRef);
 
         // CONTRATOS
         List<Contrato> contratosAtivos = contratoRepository.findAll().stream()
@@ -87,7 +89,7 @@ public class GerencialService {
                 .map(v -> v.getVendasMes() != null ? v.getVendasMes() : BigDecimal.ZERO)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        BigDecimal totalComissoesVendedoresMes = folhaPagamentoRepository.somarTotalComissoesPagasPorMes(mesReferencia);
+        BigDecimal totalComissoesVendedoresMes = folhaPagamentoRepository.somarTotalComissoesPagasPorMes(mesRef);
 
         // Ranking de vendedores
         List<VendedorRankingDTO> ranking = vendedoresAtivos.stream()
@@ -157,7 +159,7 @@ public class GerencialService {
                 .count();
 
         return GerencialComercialDTO.builder()
-                .mesReferencia(mesReferencia)
+                .mesReferencia(mesRef)
                 .totalContratosAtivos(totalContratosAtivos)
                 .totalContratosInadimplentes(totalContratosInadimplentes)
                 .valorTotalContratosAtivos(valorTotalContratosAtivos)
@@ -182,14 +184,15 @@ public class GerencialService {
     // ==========================================
     @Transactional(readOnly = true)
     public GerencialFinanceiroDTO gerarVisaoFinanceira(String mesReferencia) {
-        if (mesReferencia == null || mesReferencia.isBlank()) {
-            mesReferencia = LocalDate.now().format(FORMATO_MES);
-        }
+        // CORREÇÃO: Usar variável final em vez de reatribuir o parâmetro
+        final String mesRef = (mesReferencia == null || mesReferencia.isBlank())
+                ? LocalDate.now().format(FORMATO_MES)
+                : mesReferencia;
 
-        log.info("Gerando visão financeira para o mês {}", mesReferencia);
+        log.info("Gerando visão financeira para o mês {}", mesRef);
 
-        LocalDate primeiroDia = getPrimeiroDiaDoMes(mesReferencia);
-        LocalDate ultimoDia = getUltimoDiaDoMes(mesReferencia);
+        LocalDate primeiroDia = getPrimeiroDiaDoMes(mesRef);
+        LocalDate ultimoDia = getUltimoDiaDoMes(mesRef);
 
         // RECEITAS
         BigDecimal totalFaturadoMes = contratoPagamentoRepository.buscarPorPeriodoVencimento(primeiroDia, ultimoDia)
@@ -220,8 +223,8 @@ public class GerencialService {
                 .count();
 
         // DESPESAS
-        BigDecimal totalFolhaPagaMes = folhaPagamentoRepository.somarTotalLiquidoPagoPorMes(mesReferencia);
-        BigDecimal totalComissoesVendedoresMes = folhaPagamentoRepository.somarTotalComissoesPagasPorMes(mesReferencia);
+        BigDecimal totalFolhaPagaMes = folhaPagamentoRepository.somarTotalLiquidoPagoPorMes(mesRef);
+        BigDecimal totalComissoesVendedoresMes = folhaPagamentoRepository.somarTotalComissoesPagasPorMes(mesRef);
 
         BigDecimal totalComissoesAgenciasMes = pagamentosRepository.buscarPorTipoEPeriodoPagamento(
                         TipoPagamento.COMISSAO_AGENCIA, primeiroDia, ultimoDia)
@@ -279,7 +282,7 @@ public class GerencialService {
                 : BigDecimal.ZERO;
 
         return GerencialFinanceiroDTO.builder()
-                .mesReferencia(mesReferencia)
+                .mesReferencia(mesRef)
                 .totalFaturadoMes(totalFaturadoMes)
                 .totalRecebidoMes(totalRecebidoMes)
                 .totalReceberAtrasado(totalReceberAtrasado)
@@ -312,11 +315,12 @@ public class GerencialService {
     // ==========================================
     @Transactional(readOnly = true)
     public GerencialRHDTO gerarVisaoRH(String mesReferencia) {
-        if (mesReferencia == null || mesReferencia.isBlank()) {
-            mesReferencia = LocalDate.now().format(FORMATO_MES);
-        }
+        // CORREÇÃO: Usar variável final em vez de reatribuir o parâmetro
+        final String mesRef = (mesReferencia == null || mesReferencia.isBlank())
+                ? LocalDate.now().format(FORMATO_MES)
+                : mesReferencia;
 
-        log.info("Gerando visão de RH para o mês {}", mesReferencia);
+        log.info("Gerando visão de RH para o mês {}", mesRef);
 
         // FUNCIONÁRIOS
         List<Funcionario> funcionariosAtivos = funcionarioRepository.findAll().stream()
@@ -338,16 +342,16 @@ public class GerencialService {
         Long totalFolhasFechadas = folhaPagamentoRepository.findByStatusFolhaAndAtivaTrue(StatusFolha.FECHADA).stream().count();
         Long totalFolhasPagas = folhaPagamentoRepository.findByStatusFolhaAndAtivaTrue(StatusFolha.PAGA).stream().count();
 
-        BigDecimal totalLiquidoPagoMes = folhaPagamentoRepository.somarTotalLiquidoPagoPorMes(mesReferencia);
-        BigDecimal totalComissoesPagasMes = folhaPagamentoRepository.somarTotalComissoesPagasPorMes(mesReferencia);
-        BigDecimal totalBeneficiosDescontadosMes = folhaPagamentoRepository.somarTotalBeneficiosDescontadosPorMes(mesReferencia);
+        BigDecimal totalLiquidoPagoMes = folhaPagamentoRepository.somarTotalLiquidoPagoPorMes(mesRef);
+        BigDecimal totalComissoesPagasMes = folhaPagamentoRepository.somarTotalComissoesPagasPorMes(mesRef);
+        BigDecimal totalBeneficiosDescontadosMes = folhaPagamentoRepository.somarTotalBeneficiosDescontadosPorMes(mesRef);
 
         // BENEFÍCIOS
-        Long totalBeneficiosAtivos = lancamentoBeneficioRepository.buscarPorMesReferencia(mesReferencia).stream().count();
-        BigDecimal totalValorBeneficiosMes = lancamentoBeneficioRepository.buscarPorMesReferencia(mesReferencia).stream()
+        Long totalBeneficiosAtivos = lancamentoBeneficioRepository.buscarPorMesReferencia(mesRef).stream().count();
+        BigDecimal totalValorBeneficiosMes = lancamentoBeneficioRepository.buscarPorMesReferencia(mesRef).stream()
                 .map(l -> l.calcularTotalMensal())
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal totalCoparticipacoesMes = lancamentoBeneficioRepository.buscarPorMesReferencia(mesReferencia).stream()
+        BigDecimal totalCoparticipacoesMes = lancamentoBeneficioRepository.buscarPorMesReferencia(mesRef).stream()
                 .map(l -> l.getValorCoparticipacaoOuZero())
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
@@ -370,8 +374,9 @@ public class GerencialService {
 
         // ALERTAS
         Long funcionariosSemFolhaNoMes = funcionariosAtivos.stream()
-                .filter(f -> !folhaPagamentoRepository.existsByFuncionario_FuncionarioIdAndMesReferenciaAndAtivaTrue(
-                        f.getId(), mesReferencia))
+                // AQUI ESTAVA O ERRO: mesReferencia não era efetivamente final
+                .filter(f -> !folhaPagamentoRepository.existsByFuncionario_IdAndMesReferenciaAndAtivaTrue(
+                        f.getId(), mesRef))
                 .count();
 
         Long funcionariosComComissaoPendente = comissaoVendedorRepository.findByStatusComissaoAndAtivaTrue(StatusComissao.PENDENTE).stream()
@@ -380,7 +385,7 @@ public class GerencialService {
                 .count();
 
         return GerencialRHDTO.builder()
-                .mesReferencia(mesReferencia)
+                .mesReferencia(mesRef)
                 .totalFuncionariosAtivos(totalFuncionariosAtivos)
                 .totalFuncionariosVendedores(totalFuncionariosVendedores)
                 .totalFuncionariosAdministrativos(totalFuncionariosAdministrativos)

@@ -1,18 +1,16 @@
 package br.com.drs.radiotv_pro_escritorio.dto;
 
-import br.com.drs.radiotv_pro_escritorio.model.Funcionario;
+import br.com.drs.radiotv_pro_escritorio.model.enuns.StatusFolha;
 import com.fasterxml.jackson.annotation.JsonFormat;
-import jakarta.persistence.Column;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
-@Getter
-@Setter
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -20,29 +18,80 @@ public class FolhaPagamentoDTO {
 
     private Long folhaPagamentoId;
 
-    private Funcionario funcionario;
+    // ==========================================
+    // VÍNCULOS (IDs para salvar, Nomes para exibição)
+    // ==========================================
 
-    private String mesAno;
+    // Dados do Funcionário
+    private Long funcionarioId;
+    private String funcionarioNome;
+    private String funcionarioCpf;
+    private String funcionarioCargo;
+    private Boolean funcionarioVendedor; // Para saber se tem comissão
 
-    private BigDecimal salarioBruto;
+    // ==========================================
+    // REFERÊNCIA TEMPORAL
+    // ==========================================
 
-    private BigDecimal comissao;
+    // Mês de referência da folha (ex: "07/2026")
+    private String mesReferencia;
 
-    private BigDecimal outrosPagamentos;
+    // Competência (mês trabalhado)
+    private String competencia;
 
-    private BigDecimal descontoInss;
+    // Data em que a folha foi fechada/gerada
+    @JsonFormat(pattern = "dd/MM/yyyy")
+    private LocalDate dataFechamento;
 
-    private BigDecimal descontoIrrf;
-
-    private BigDecimal descontoBeneficios; // Soma de (Mensalidade + Coparticipação) de todos os dependentes e titular
-
-    private BigDecimal totalDescontos;
-
-    private BigDecimal salarioLiquido;
-
+    // Data em que o salário foi efetivamente pago
     @JsonFormat(pattern = "dd/MM/yyyy")
     private LocalDate dataPagamento;
 
-    @Builder.Default
-    private Boolean fechada = false;
+    // ==========================================
+    // PROVENTOS (O que o funcionário RECEBE)
+    // ==========================================
+
+    // Salário base do funcionário
+    private BigDecimal salarioBruto;
+
+    // Total de comissões do vendedor processadas neste mês
+    private BigDecimal totalComissoes;
+
+    // Total de proventos = salarioBruto + totalComissoes
+    private BigDecimal totalProventos;
+
+    // ==========================================
+    // DESCONTOS (O que o funcionário PERDE)
+    // ==========================================
+
+    // Total de benefícios (plano de saúde, odontológico, coparticipações)
+    private BigDecimal totalBeneficios;
+
+    // Outros descontos (INSS, IR, VT, VR, adiantamentos)
+    private BigDecimal totalOutrosDescontos;
+
+    // Total de todos os descontos
+    private BigDecimal totalDescontos;
+
+    // ==========================================
+    // VALOR FINAL
+    // ==========================================
+
+    // Salário líquido = totalProventos - totalDescontos
+    private BigDecimal salarioLiquido;
+
+    // ==========================================
+    // STATUS E CONTROLE
+    // ==========================================
+
+    private StatusFolha statusFolha;
+
+    // ID do pagamento gerado no módulo de Pagamentos (quando paga)
+    private Long pagamentoId;
+
+    // Forma de pagamento (TED, PIX, dinheiro, etc.)
+    private String formaPagamento;
+
+    private String observacao;
+    private Boolean ativa;
 }

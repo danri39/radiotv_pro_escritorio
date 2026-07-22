@@ -3,7 +3,6 @@ package br.com.drs.radiotv_pro_escritorio.model;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
-
 import java.math.BigDecimal;
 
 @Getter
@@ -16,21 +15,32 @@ import java.math.BigDecimal;
 public class ItemCompra {
 
     @Id
-    @GeneratedValue(strategy = jakarta.persistence.GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long itemCompraId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "compra_id", nullable = false)
-    @JsonIgnore
+    @JsonIgnore // Evita loop infinito na serialização JSON
     private Compras compra;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "produto_id", nullable = false)
-    private Produtos produto;
+    @Column(nullable = false)
+    private String descricao;
 
+    @Column(nullable = false)
     private Integer quantidade;
 
+    @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal valorUnitario;
 
+    @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal valorTotal;
+
+    // Método helper para calcular o valor total automaticamente
+    @PrePersist
+    @PreUpdate
+    private void calcularValorTotal() {
+        if (this.quantidade != null && this.valorUnitario != null) {
+            this.valorTotal = this.valorUnitario.multiply(new BigDecimal(this.quantidade));
+        }
+    }
 }

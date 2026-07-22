@@ -7,8 +7,14 @@ import lombok.Getter;
 @AllArgsConstructor
 public enum TipoPagamento {
 
-    COMPRA("Compra"),
-    MANUAL("Manual");
+    COMISSAO_AGENCIA("Comissão de Agência"),
+    COMPRA_APROVADA("Compra Aprovada"),
+    CONTA_DIVERSSA("Conta Diversa (Luz, Água, Internet, etc.)"),
+    SALARIO("Salário de Funcionário"),
+    VALE_TRANSPORTE("Vale-Transporte"),
+    VALE_REFEICAO("Vale-Refeição"),
+    COMISSAO_VENDEDOR("Comissão de Vendedor (quando paga separadamente)"),
+    OUTROS("Outros");
 
-    private String descricao;
+    private final String descricao;
 }

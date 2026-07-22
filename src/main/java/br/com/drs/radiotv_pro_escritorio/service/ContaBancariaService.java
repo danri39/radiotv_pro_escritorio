@@ -8,7 +8,8 @@ import br.com.drs.radiotv_pro_escritorio.repository.ContaBancariaRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
+import br.com.drs.radiotv_pro_escritorio.exception.EntidadeNaoEncontradaException;
+import br.com.drs.radiotv_pro_escritorio.exception.RegraNegocioException;
 import javax.swing.text.html.Option;
 import java.util.List;
 import java.util.Optional;

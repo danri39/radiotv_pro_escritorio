@@ -7,9 +7,11 @@ import lombok.Getter;
 @AllArgsConstructor
 public enum StatusPagamento {
 
-    PENDENTE("Pendente"),
+    PENDENTE("Pendente de Lançamento"),
+    AGUARDANDO_DOCUMENTO("Aguardando Documento da Agência"),
+    PRONTO_PARA_PAGAMENTO("Pronto para Pagamento (Documento Validado)"),
     PAGO("Pago"),
     CANCELADO("Cancelado");
 
-    private String descricao;
+    private final String descricao;
 }

@@ -1,29 +1,40 @@
 package br.com.drs.radiotv_pro_escritorio.mapper;
 
 import br.com.drs.radiotv_pro_escritorio.dto.PagamentosDTO;
-import br.com.drs.radiotv_pro_escritorio.dto.PagamentosRequestDTO;
 import br.com.drs.radiotv_pro_escritorio.model.Pagamentos;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import org.mapstruct.MappingTarget;
+
+import java.util.List;
 
 @Mapper(componentModel = "spring")
 public interface PagamentosMapper {
 
-    @Mapping(target = "comprasId", source = "compras.comprasId")
-    PagamentosDTO toDTO(Pagamentos pagamentos);
+    /**
+     * Converte Entidade para DTO
+     * Mapeia os dados dos relacionamentos opcionais (agência, compra, funcionário, contratoPagamento)
+     */
+    @Mapping(target = "agenciaId", source = "agencia.agenciaId")
+    @Mapping(target = "agenciaNome", source = "agencia.nomeFantasia")
+    @Mapping(target = "contratoPagamentoId", source = "contratoPagamento.contratoPagamentoId")
+    @Mapping(target = "numeroParcela", source = "contratoPagamento.numeroParcela")
+    @Mapping(target = "compraId", source = "compra.comprasId")
+    @Mapping(target = "funcionarioId", source = "funcionario.id") // CORREÇÃO: 'id' em vez de 'funcionarioId'
+    @Mapping(target = "funcionarioNome", source = "funcionario.nome")
+    PagamentosDTO toDTO(Pagamentos entity);
 
-    @Mapping(target = "compras", ignore = true) // Será setado manualmente no service
-    @Mapping(target = "pagamentosId", ignore = true)
-    @Mapping(target = "status", ignore = true)
-    @Mapping(target = "dataCriacao", ignore = true)
-    @Mapping(target = "dataPagamento", ignore = true)
-    Pagamentos toEntity(PagamentosRequestDTO dto);
+    /**
+     * Converte DTO para Entidade
+     * Os relacionamentos são ignorados aqui e devem ser buscados no Service pelos IDs
+     */
+    @Mapping(target = "agencia", ignore = true)
+    @Mapping(target = "contratoPagamento", ignore = true)
+    @Mapping(target = "compra", ignore = true)
+    @Mapping(target = "funcionario", ignore = true)
+    Pagamentos toEntity(PagamentosDTO dto);
 
-    @Mapping(target = "compras", ignore = true)
-    @Mapping(target = "pagamentosId", ignore = true)
-    @Mapping(target = "status", ignore = true)
-    @Mapping(target = "dataCriacao", ignore = true)
-    @Mapping(target = "dataPagamento", ignore = true)
-    void updateEntityFromDto(PagamentosRequestDTO dto, @MappingTarget Pagamentos pagamentos);
+    /**
+     * Converte Lista de Entidades para Lista de DTOs
+     */
+    List<PagamentosDTO> toDTOList(List<Pagamentos> entities);
 }

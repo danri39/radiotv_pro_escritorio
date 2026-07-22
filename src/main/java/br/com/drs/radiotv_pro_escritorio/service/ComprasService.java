@@ -37,7 +37,7 @@ public class ComprasService {
     @Transactional
     public ComprasDTO criarCompra(ComprasDTO dto) {
         Funcionario funcionario = funcionarioRepository.findById(dto.getFuncionarioId())
-                .orElseThrow(() -> new RuntimeException("Funcionário não encontrado com ID: " + dto.getFuncionarioId()));
+                .orElseThrow(() -> new EntidadeNaoEncontradaException("Funcionário não encontrado com ID: " + dto.getFuncionarioId()));
 
         Compras compra = comprasMapper.toEntity(dto);
         compra.setFuncionario(funcionario);
@@ -66,12 +66,6 @@ public class ComprasService {
         return comprasMapper.toDTOList(comprasRepository.findAll());
     }
 
-    @Transactional(readOnly = true)
-    public ComprasDTO buscarPorId(Long id) {
-        Compras compra = comprasRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Compra não encontrada com ID: " + id));
-        return comprasMapper.toDTO(compra);
-    }
 
     @Transactional(readOnly = true)
     public List<ComprasDTO> listarPorFuncionario(Long funcionarioId) {
@@ -129,6 +123,13 @@ public class ComprasService {
 
         Compras compraSalva = comprasRepository.save(compra);
         return comprasMapper.toDTO(compraSalva);
+    }
+
+    @Transactional(readOnly = true)
+    public ComprasDTO buscarPorId(Long id) {
+        Compras compra = comprasRepository.findById(id)
+                .orElseThrow(() -> new EntidadeNaoEncontradaException("Compra não encontrada com ID: " + id));
+        return comprasMapper.toDTO(compra);
     }
 
     // ==========================================

@@ -26,7 +26,7 @@ public class Usuario {
     @Column(name = "usuario_id")
     private Long usuarioId;
 
-    @Column(nullable = false, length = 100, unique = true)
+    @Column(nullable = false, length = 100)
     private String nome;
 
     @Column(nullable = false, length = 150, unique = true)

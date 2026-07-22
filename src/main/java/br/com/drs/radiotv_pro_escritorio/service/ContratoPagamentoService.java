@@ -123,10 +123,10 @@ public class ContratoPagamentoService {
     @Transactional
     public ContratoPagamentoDTO faturarParcela(Long id, String numeroFatura) {
         ContratoPagamento parcela = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Parcela não encontrada com ID: " + id));
+                .orElseThrow(() -> new EntidadeNaoEncontradaException("Parcela não encontrada com ID: " + id));
 
         if (numeroFatura == null || numeroFatura.isBlank()) {
-            throw new RuntimeException("O número da fatura é obrigatório.");
+            throw new RegraNegocioException("O número da fatura é obrigatório.");
         }
 
         parcela.marcarComoFaturado(numeroFatura);
@@ -135,17 +135,16 @@ public class ContratoPagamentoService {
                 parcela.getNumeroParcela(), parcela.getContrato().getContratoId(), numeroFatura);
         return mapper.toDTO(salva);
     }
-
     // ==========================================
     // 4. RECEBER PAGAMENTO (COM GATILHO AUTOMÁTICO)
     // ==========================================
     @Transactional
     public ContratoPagamentoDTO receberPagamento(Long id, BigDecimal valorRecebido) {
         ContratoPagamento parcela = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Parcela não encontrada com ID: " + id));
+                .orElseThrow(() -> new EntidadeNaoEncontradaException("Parcela não encontrada com ID: " + id));
 
         if (valorRecebido == null || valorRecebido.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new RuntimeException("O valor recebido deve ser maior que zero.");
+            throw new RegraNegocioException("O valor recebido deve ser maior que zero.");
         }
 
         parcela.marcarComoRecebido(LocalDate.now(), valorRecebido);
@@ -154,7 +153,6 @@ public class ContratoPagamentoService {
         log.info("Parcela {} do contrato {} recebida. Valor: R$ {}",
                 parcela.getNumeroParcela(), parcela.getContrato().getContratoId(), valorRecebido);
 
-        // DISPARA AS COMISSÕES AUTOMATICAMENTE
         dispararComissoes(parcela, valorRecebido);
 
         return mapper.toDTO(salva);
@@ -225,10 +223,10 @@ public class ContratoPagamentoService {
     @Transactional
     public void cancelarParcela(Long id, String motivo) {
         ContratoPagamento parcela = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Parcela não encontrada com ID: " + id));
+                .orElseThrow(() -> new EntidadeNaoEncontradaException("Parcela não encontrada com ID: " + id));
 
         if (parcela.getStatusRecebimento() == StatusRecebimento.RECEBIDO) {
-            throw new RuntimeException("Não é possível cancelar uma parcela já recebida.");
+            throw new RegraNegocioException("Não é possível cancelar uma parcela já recebida.");
         }
 
         parcela.setStatusRecebimento(StatusRecebimento.CANCELADO);

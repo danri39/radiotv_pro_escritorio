@@ -88,7 +88,7 @@ public class UsuarioService {
     public UsuarioDTO cadastrar(UsuarioDTO dto) {
         validarEmailUnico(dto.getEmail());
 
-        Usuario novoUsuario = usuarioMapper.paraEntity(dto);
+        Usuario novoUsuario = usuarioMapper.toEntity(dto);
 
         // ==========================================
         // GERAÇÃO DAS CHAVES DE ACESSO (ALFANUMÉRICAS E MAIÚSCULAS)

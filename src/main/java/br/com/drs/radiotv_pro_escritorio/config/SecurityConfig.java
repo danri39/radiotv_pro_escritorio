@@ -59,6 +59,7 @@ public class SecurityConfig {
                     req.requestMatchers("/api/v1/gerencial/**").permitAll();
                     req.requestMatchers("/api/v1/feriado/**").permitAll();
                     req.requestMatchers("/api/v1/produtos/**").permitAll();
+                    req.requestMatchers("/api/v1/horariosBreaks/**").permitAll();
 
                     // 3. NOVO: Liberar acesso ao Swagger UI e documentação
                     req.requestMatchers(

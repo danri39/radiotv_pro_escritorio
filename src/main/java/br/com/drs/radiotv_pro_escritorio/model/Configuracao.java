@@ -112,5 +112,5 @@ public class Configuracao {
     private Boolean pagamentoComissaoAgenciaAutomatico = false; // Se true, o sistema tenta conciliar sozinho; se false, exige ação manual
 
     @Column(name = "dia_pagamento_comissao_agencia")
-    private Integer diaPagamentoComissaoAgencia; // Ex: 10 (todo dia 10 o sistema libera/compra as comissões)
+    private Integer diaPagamentoComissaoAgencia;
 }

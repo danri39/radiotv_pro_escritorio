@@ -11,6 +11,11 @@ public enum Papeis {
     ADMINISTRADOR("Administrador"),
     GERENTE("Gerente"),
     USUARIO("Usuário"),
+    ESCRITORIO("Escritório"),
+    RH("RH"),
+    FINANCEIRO("Financeiro"),
+    RADIO("Rádio"),
+    TELEVISAO("Televisão"),
     CONVIDADO("Convidado"),
     CLIENTE("Cliente"),
     AGENCIA("Agencia");

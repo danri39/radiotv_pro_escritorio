@@ -18,9 +18,13 @@ public class Configuracao {
     private Long configuracaoId;
 
     private String agenciaPadrao;
+
     private String contaCorrentePadrao;
+
     private String carteiraPadrao;
+
     private String codigoCedentePadrao;
+
     private String codigoConvenioBancario;
 
     @Column(name = "percentual_multa_atraso")
@@ -112,5 +116,5 @@ public class Configuracao {
     private Boolean pagamentoComissaoAgenciaAutomatico = false; // Se true, o sistema tenta conciliar sozinho; se false, exige ação manual
 
     @Column(name = "dia_pagamento_comissao_agencia")
-    private Integer diaPagamentoComissaoAgencia; // Ex: 10 (todo dia 10 o sistema libera/compra as comissões)
+    private Integer diaPagamentoComissaoAgencia;
 }

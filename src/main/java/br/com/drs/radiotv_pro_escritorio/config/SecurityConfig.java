@@ -52,11 +52,16 @@ public class SecurityConfig {
                     req.requestMatchers("/api/v1/programas/**").permitAll();
                     req.requestMatchers("/api/v1/contratos/**").permitAll();
                     req.requestMatchers("/api/v1/compras/**").permitAll();
-                    req.requestMatchers("/api/v1/contratos-pagamento/**").permitAll();
+                    req.requestMatchers("/api/v1/contratosPagamento/**").permitAll();
                     req.requestMatchers("/api/v1/pagamentos/**").permitAll();
                     req.requestMatchers("/api/v1/comissoes-vendedor/**").permitAll();
                     req.requestMatchers("/api/v1/administrador/**").permitAll();
                     req.requestMatchers("/api/v1/gerencial/**").permitAll();
+                    req.requestMatchers("/api/v1/feriado/**").permitAll();
+                    req.requestMatchers("/api/v1/produtos/**").permitAll();
+                    req.requestMatchers("/api/v1/horariosBreaks/**").permitAll();
+                    req.requestMatchers("/api/v1/configuracao/**").permitAll();
+
 
                     // 3. NOVO: Liberar acesso ao Swagger UI e documentação
                     req.requestMatchers(

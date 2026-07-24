@@ -59,6 +59,7 @@ public class Usuario {
     private String chaveTrocaSenha;
 
     private Boolean primeiroAcesso;
+
     private LocalDateTime acessoSistema;
 
     private Long funcionarioId;

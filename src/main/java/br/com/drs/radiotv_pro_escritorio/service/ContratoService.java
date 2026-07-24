@@ -2,11 +2,9 @@ package br.com.drs.radiotv_pro_escritorio.service;
 
 import br.com.drs.radiotv_pro_escritorio.dto.ContratoDTO;
 import br.com.drs.radiotv_pro_escritorio.mapper.ContratoMapper;
-import br.com.drs.radiotv_pro_escritorio.model.Contrato;
-import br.com.drs.radiotv_pro_escritorio.model.ContratoPagamento;
+import br.com.drs.radiotv_pro_escritorio.model.*;
 import br.com.drs.radiotv_pro_escritorio.model.enuns.StatusRecebimento;
-import br.com.drs.radiotv_pro_escritorio.repository.ContratoPagamentoRepository;
-import br.com.drs.radiotv_pro_escritorio.repository.ContratoRepository;
+import br.com.drs.radiotv_pro_escritorio.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,13 +22,55 @@ public class ContratoService {
     private final ContratoRepository repository;
     private final ContratoMapper mapper;
     private final ContratoPagamentoRepository contratoPagamentoRepository;
+    private final ClienteRepository clienteRepository;
+    private final VendedorRepository vendedorRepository;
+    private final AgenciaRepository agenciaRepository;
 
     @Transactional
     public ContratoDTO salvar(ContratoDTO dto) {
         desativarContratosVencidos();
-        Contrato entity = mapper.toEntity(dto);
-        Contrato saved = repository.save(entity);
-        gerarParcelas(dto, saved);
+
+        Contrato contrato = new Contrato();
+
+        // Buscar e setar o cliente
+        if (dto.getCliente() != null && dto.getCliente().getClienteId() != null) {
+            Cliente cliente = clienteRepository.findById(dto.getCliente().getClienteId())
+                    .orElseThrow(() -> new RuntimeException("Cliente não encontrado"));
+            contrato.setCliente(cliente);
+        }
+
+        // Buscar e setar o vendedor
+        if (dto.getVendedor() != null && dto.getVendedor().getVendedorId() != null) {
+            Vendedor vendedor = vendedorRepository.findById(dto.getVendedor().getVendedorId())
+                    .orElseThrow(() -> new RuntimeException("Vendedor não encontrado"));
+            contrato.setVendedor(vendedor);
+        }
+
+        // Buscar e setar a agência (opcional)
+        if (dto.getAgencia() != null && dto.getAgencia().getAgenciaId() != null) {
+            Agencia agencia = agenciaRepository.findById(dto.getAgencia().getAgenciaId())
+                    .orElse(null);
+            contrato.setAgencia(agencia);
+        }
+
+        // Setar os outros campos
+        contrato.setDataInicio(dto.getDataInicio());
+        contrato.setDataFinal(dto.getDataFinal());
+        contrato.setValorTotal(dto.getValorTotal());
+        contrato.setQuantidadeParcelas(dto.getQuantidadeParcelas());
+        contrato.setValorParcelas(dto.getValorParcelas());
+        contrato.setDataPrimeiroPagamento(dto.getDataPrimeiroPagamento());
+        contrato.setContratoBonificado(dto.getContratoBonificado() != null ? dto.getContratoBonificado() : false);
+        contrato.setAtivo(dto.getAtivo() != null ? dto.getAtivo() : true);
+
+        Contrato saved = repository.save(contrato);
+
+        // Gerar parcelas se tiver dados
+        if (dto.getQuantidadeParcelas() != null && dto.getQuantidadeParcelas() > 0
+                && dto.getValorParcelas() != null && dto.getDataPrimeiroPagamento() != null) {
+            gerarParcelas(dto, saved);
+        }
+
         return mapper.toDTO(saved);
     }
 
@@ -47,9 +87,20 @@ public class ContratoService {
     @Transactional
     public ContratoDTO atualizar(Long id, ContratoDTO dto) {
         Contrato contratoExistente = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Contrato não encontrado com o ID: " + id)); // Corrigido de "Usuário" para "Contrato"
+                .orElseThrow(() -> new RuntimeException("Contrato não encontrado com o ID: " + id));
 
-        mapper.updateEntityFromDto(dto, contratoExistente);
+        // Atualizar apenas os campos permitidos manualmente
+        if (dto.getDataInicio() != null) contratoExistente.setDataInicio(dto.getDataInicio());
+        if (dto.getDataFinal() != null) contratoExistente.setDataFinal(dto.getDataFinal());
+        if (dto.getValorTotal() != null) contratoExistente.setValorTotal(dto.getValorTotal());
+        if (dto.getQuantidadeParcelas() != null) contratoExistente.setQuantidadeParcelas(dto.getQuantidadeParcelas());
+        if (dto.getValorParcelas() != null) contratoExistente.setValorParcelas(dto.getValorParcelas());
+        if (dto.getDataPrimeiroPagamento() != null) contratoExistente.setDataPrimeiroPagamento(dto.getDataPrimeiroPagamento());
+        if (dto.getContratoBonificado() != null) contratoExistente.setContratoBonificado(dto.getContratoBonificado());
+        if (dto.getAtivo() != null) contratoExistente.setAtivo(dto.getAtivo());
+
+        // NÃO atualizar: contratoId, cliente, vendedor, agencia
+
         repository.save(contratoExistente);
         return mapper.toDTO(contratoExistente);
     }

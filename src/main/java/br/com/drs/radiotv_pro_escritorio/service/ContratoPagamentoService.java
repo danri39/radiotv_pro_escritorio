@@ -1,23 +1,25 @@
 package br.com.drs.radiotv_pro_escritorio.service;
 
 import br.com.drs.radiotv_pro_escritorio.dto.ContratoPagamentoDTO;
+import br.com.drs.radiotv_pro_escritorio.exception.EntidadeNaoEncontradaException;
+import br.com.drs.radiotv_pro_escritorio.exception.RegraNegocioException;
+import br.com.drs.radiotv_pro_escritorio.mapper.ContratoPagamentoMapper;
 import br.com.drs.radiotv_pro_escritorio.model.Contrato;
 import br.com.drs.radiotv_pro_escritorio.model.ContratoPagamento;
 import br.com.drs.radiotv_pro_escritorio.model.enuns.StatusRecebimento;
-import br.com.drs.radiotv_pro_escritorio.mapper.ContratoPagamentoMapper;
 import br.com.drs.radiotv_pro_escritorio.repository.ContratoPagamentoRepository;
 import br.com.drs.radiotv_pro_escritorio.repository.ContratoRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import br.com.drs.radiotv_pro_escritorio.exception.EntidadeNaoEncontradaException;
-import br.com.drs.radiotv_pro_escritorio.exception.RegraNegocioException;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -73,7 +75,79 @@ public class ContratoPagamentoService {
     }
 
     // ==========================================
-    // 2. LISTAGENS
+    // 2. REGENERAR PARCELAS (NOVO MÉTODO)
+    // ==========================================
+    @Transactional
+    public List<ContratoPagamentoDTO> regenerarParcelas(Long contratoId) {
+        Contrato contrato = contratoRepository.findById(contratoId)
+                .orElseThrow(() -> new RuntimeException("Contrato não encontrado com ID: " + contratoId));
+
+        // Buscar APENAS as parcelas ATIVAS do contrato
+        List<ContratoPagamento> parcelasExistentes = repository.findByContrato_ContratoIdAndAtivoTrue(contratoId);
+
+        // Verificar se há parcelas PROTEGIDAS (FATURADO, ATRASADO, RECEBIDO)
+        List<ContratoPagamento> parcelasProtegidas = parcelasExistentes.stream()
+                .filter(p -> p.getStatusRecebimento() == StatusRecebimento.FATURADO
+                        || p.getStatusRecebimento() == StatusRecebimento.ATRASADO
+                        || p.getStatusRecebimento() == StatusRecebimento.RECEBIDO)
+                .collect(Collectors.toList());
+
+        if (!parcelasProtegidas.isEmpty()) {
+            String statusList = parcelasProtegidas.stream()
+                    .map(p -> "Parcela " + p.getNumeroParcela() + " (" + p.getStatusRecebimento().getDescricao() + ")")
+                    .collect(Collectors.joining(", "));
+            throw new RegraNegocioException(
+                    "Não é possível regenerar porque existem parcelas já processadas:\n" +
+                            statusList + "\n\n" +
+                            "Apenas parcelas 'A Faturar' e 'Canceladas' podem ser regeneradas."
+            );
+        }
+
+        // Remover todas as parcelas existentes (A_FATURAR e CANCELADO)
+        if (!parcelasExistentes.isEmpty()) {
+            repository.deleteAll(parcelasExistentes);
+            log.info("{} parcelas removidas do contrato {} para regeneração", parcelasExistentes.size(), contratoId);
+        }
+
+        // Validar dados do contrato
+        if (contrato.getDataPrimeiroPagamento() == null) {
+            throw new RegraNegocioException("O contrato não possui data de primeiro pagamento definida.");
+        }
+
+        if (contrato.getQuantidadeParcelas() == null || contrato.getQuantidadeParcelas() <= 0) {
+            throw new RegraNegocioException("O contrato não possui quantidade de parcelas definida.");
+        }
+
+        if (contrato.getValorParcelas() == null || contrato.getValorParcelas().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new RegraNegocioException("O contrato não possui valor de parcela definido.");
+        }
+
+        // Gerar novas parcelas
+        List<ContratoPagamento> novasParcelas = new ArrayList<>();
+        LocalDate dataBase = contrato.getDataPrimeiroPagamento();
+
+        for (int i = 1; i <= contrato.getQuantidadeParcelas(); i++) {
+            ContratoPagamento parcela = ContratoPagamento.builder()
+                    .contrato(contrato)
+                    .numeroParcela(i)
+                    .dataVencimento(dataBase.plusMonths(i - 1))
+                    .valorParcela(contrato.getValorParcelas())
+                    .statusRecebimento(StatusRecebimento.A_FATURAR)
+                    .comissaoVendedorLancada(false)
+                    .comissaoAgenciaLancada(false)
+                    .ativo(true)
+                    .build();
+            novasParcelas.add(parcela);
+        }
+
+        List<ContratoPagamento> salvas = repository.saveAll(novasParcelas);
+        log.info("{} novas parcelas geradas para o contrato {}", salvas.size(), contratoId);
+
+        return mapper.toDTOList(salvas);
+    }
+
+    // ==========================================
+    // 3. LISTAGENS
     // ==========================================
     @Transactional(readOnly = true)
     public List<ContratoPagamentoDTO> listarTodas() {
@@ -117,8 +191,72 @@ public class ContratoPagamentoService {
         return mapper.toDTOList(repository.buscarPorAgencia(agenciaId));
     }
 
+    @Transactional(readOnly = true)
+    public List<ContratoPagamentoDTO> listarComissoesVendedorPendentes() {
+        return mapper.toDTOList(repository.buscarParcelasComComissaoVendedorPendente());
+    }
+
+    @Transactional(readOnly = true)
+    public List<ContratoPagamentoDTO> listarComissoesAgenciaPendentes() {
+        return mapper.toDTOList(repository.buscarParcelasComComissaoAgenciaPendente());
+    }
+
     // ==========================================
-    // 3. FATURAR PARCELA
+    // 4. ATUALIZAR PARCELA
+    // ==========================================
+    @Transactional
+    public ContratoPagamentoDTO atualizarParcela(Long id, ContratoPagamentoDTO dto) {
+        ContratoPagamento parcela = repository.findById(id)
+                .orElseThrow(() -> new EntidadeNaoEncontradaException("Parcela não encontrada com ID: " + id));
+
+        if (parcela.getStatusRecebimento() != StatusRecebimento.A_FATURAR) {
+            throw new RegraNegocioException(
+                    "Não é possível editar uma parcela com status: " +
+                            parcela.getStatusRecebimento().getDescricao() +
+                            ". Apenas parcelas 'A Faturar' podem ser editadas."
+            );
+        }
+
+        if (dto.getDataVencimento() != null) {
+            parcela.setDataVencimento(dto.getDataVencimento());
+        }
+        if (dto.getValorParcela() != null && dto.getValorParcela().compareTo(BigDecimal.ZERO) > 0) {
+            parcela.setValorParcela(dto.getValorParcela());
+        }
+        if (dto.getNumeroFatura() != null) {
+            parcela.setNumeroFatura(dto.getNumeroFatura());
+        }
+
+        ContratoPagamento salva = repository.save(parcela);
+        log.info("Parcela {} do contrato {} atualizada.",
+                parcela.getNumeroParcela(), parcela.getContrato().getContratoId());
+
+        return mapper.toDTO(salva);
+    }
+
+    // ==========================================
+    // 5. EXCLUIR PARCELA
+    // ==========================================
+    @Transactional
+    public void excluirParcela(Long id) {
+        ContratoPagamento parcela = repository.findById(id)
+                .orElseThrow(() -> new EntidadeNaoEncontradaException("Parcela não encontrada com ID: " + id));
+
+        if (parcela.getStatusRecebimento() != StatusRecebimento.A_FATURAR) {
+            throw new RegraNegocioException(
+                    "Não é possível excluir uma parcela com status: " +
+                            parcela.getStatusRecebimento().getDescricao() +
+                            ". Apenas parcelas 'A Faturar' podem ser excluídas."
+            );
+        }
+
+        repository.delete(parcela);
+        log.info("Parcela {} do contrato {} excluída.",
+                parcela.getNumeroParcela(), parcela.getContrato().getContratoId());
+    }
+
+    // ==========================================
+    // 6. FATURAR PARCELA
     // ==========================================
     @Transactional
     public ContratoPagamentoDTO faturarParcela(Long id, String numeroFatura) {
@@ -135,8 +273,9 @@ public class ContratoPagamentoService {
                 parcela.getNumeroParcela(), parcela.getContrato().getContratoId(), numeroFatura);
         return mapper.toDTO(salva);
     }
+
     // ==========================================
-    // 4. RECEBER PAGAMENTO (COM GATILHO AUTOMÁTICO)
+    // 7. RECEBER PAGAMENTO
     // ==========================================
     @Transactional
     public ContratoPagamentoDTO receberPagamento(Long id, BigDecimal valorRecebido) {
@@ -158,13 +297,9 @@ public class ContratoPagamentoService {
         return mapper.toDTO(salva);
     }
 
-    // ==========================================
-    // 5. MÉTODO INTERNO: DISPARAR COMISSÕES
-    // ==========================================
     private void dispararComissoes(ContratoPagamento parcela, BigDecimal valorRecebido) {
         Contrato contrato = parcela.getContrato();
 
-        // COMISSÃO DO VENDEDOR (Versão segura contra NullPointer)
         if (Boolean.FALSE.equals(parcela.getComissaoVendedorLancada()) && contrato.getVendedor() != null) {
             try {
                 comissaoVendedorService.lancarComissao(contrato.getVendedor(), parcela, valorRecebido);
@@ -172,11 +307,9 @@ public class ContratoPagamentoService {
                 log.info("Comissão do vendedor lançada com sucesso para a parcela {}", parcela.getNumeroParcela());
             } catch (Exception e) {
                 log.error("Falha ao lançar comissão do vendedor na parcela {}: {}", parcela.getNumeroParcela(), e.getMessage());
-                // Não interrompe o recebimento, apenas registra o erro no log para o admin verificar
             }
         }
 
-        // COMISSÃO DA AGÊNCIA
         if (!parcela.getComissaoAgenciaLancada() && contrato.getAgencia() != null) {
             int percentualAgencia = contrato.getAgencia().getComissaoVendas();
             BigDecimal valorComissaoAgencia = valorRecebido
@@ -192,7 +325,7 @@ public class ContratoPagamentoService {
     }
 
     // ==========================================
-    // 6. JOB: MARCAR PARCELAS ATRASADAS
+    // 8. MARCAR PARCELAS ATRASADAS
     // ==========================================
     @Transactional
     public int marcarParcelasAtrasadas() {
@@ -218,7 +351,7 @@ public class ContratoPagamentoService {
     }
 
     // ==========================================
-    // 7. CANCELAR PARCELA
+    // 9. CANCELAR PARCELA
     // ==========================================
     @Transactional
     public void cancelarParcela(Long id, String motivo) {
@@ -234,18 +367,5 @@ public class ContratoPagamentoService {
         repository.save(parcela);
         log.info("Parcela {} do contrato {} cancelada. Motivo: {}",
                 parcela.getNumeroParcela(), parcela.getContrato().getContratoId(), motivo);
-    }
-
-    // ==========================================
-    // 8. LISTAR PENDÊNCIAS
-    // ==========================================
-    @Transactional(readOnly = true)
-    public List<ContratoPagamentoDTO> listarComissoesVendedorPendentes() {
-        return mapper.toDTOList(repository.buscarParcelasComComissaoVendedorPendente());
-    }
-
-    @Transactional(readOnly = true)
-    public List<ContratoPagamentoDTO> listarComissoesAgenciaPendentes() {
-        return mapper.toDTOList(repository.buscarParcelasComComissaoAgenciaPendente());
     }
 }

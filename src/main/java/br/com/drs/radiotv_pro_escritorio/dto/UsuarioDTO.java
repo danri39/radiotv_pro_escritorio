@@ -5,7 +5,6 @@ import br.com.drs.radiotv_pro_escritorio.model.enuns.Setor;
 import lombok.*;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 
 @Getter
@@ -15,7 +14,7 @@ import java.util.List;
 @Builder
 public class UsuarioDTO {
 
-    private Long id;
+    private Long usuarioId;  // ← DEVE EXISTIR ESTE CAMPO
 
     private String nome;
 
@@ -27,10 +26,9 @@ public class UsuarioDTO {
 
     private Papeis papel;
 
-    private List<Setor> setores = new ArrayList<>();
+    private List<Setor> setor;
 
-    @Builder.Default
-    private Boolean acessoEscritorio = false;
+    private Boolean acessoEscritorio;
 
     private String chavePrimeiroAcesso;
 
@@ -42,7 +40,7 @@ public class UsuarioDTO {
 
     private Long funcionarioId;
 
-    private Boolean ativo = true;
+    private Boolean ativo;
 
     private LocalDateTime criadoEm;
 

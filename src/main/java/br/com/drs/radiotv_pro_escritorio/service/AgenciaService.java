@@ -57,18 +57,20 @@ public class AgenciaService {
     public AgenciaDTO atualizar(Long id, AgenciaDTO dto) {
         TipoPessoa tipo = dto.getTipoPessoa();
 
-        if(TipoPessoa.FISICA.equals(tipo)) {
-            if(!DocumentoUtils.isCPF(dto.getCpf())) {
+        if (TipoPessoa.FISICA.equals(tipo)) {
+            if (!DocumentoUtils.isCPF(dto.getCpf())) {
                 throw new RegraNegocioException("CPF Inválido!");
-            } else if (TipoPessoa.JURIDICA.equals(tipo)) {
-                if(!DocumentoUtils.isCNPJ(dto.getCnpj())) {
-                    throw new RegraNegocioException("CNPJ Inválido");
-                }
-            } else {
-                throw  new RegraNegocioException("Tipo de pessoa inválido: " + (tipo != null ? tipo.name() : "bull"));
             }
+        } else if (TipoPessoa.JURIDICA.equals(tipo)) { // <-- CORRIGIDO: fora do if anterior
+            if (!DocumentoUtils.isCNPJ(dto.getCnpj())) {
+                throw new RegraNegocioException("CNPJ Inválido!");
+            }
+        } else {
+            throw new RegraNegocioException("Tipo de pessoa inválido: " + (tipo != null ? tipo.name() : "null"));
         }
+
         Agencia entity = mapper.toEntity(dto);
+        entity.setAgenciaId(id); // Garante que é um UPDATE
         Agencia saved = repository.save(entity);
         return mapper.toDTO(saved);
     }

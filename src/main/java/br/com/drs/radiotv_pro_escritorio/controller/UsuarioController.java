@@ -98,18 +98,8 @@ public class UsuarioController {
 
     @GetMapping("/me")
     public ResponseEntity<UsuarioDTO> buscarUsuarioAtual(HttpServletRequest request) {
-        // ✅ Extrai o EMAIL do token
         String emailUsuario = extrairEmailDoToken(request);
-
-        System.out.println("🔑 Email do usuário autenticado (endpoint /me): " + emailUsuario);
-
-        // ✅ Busca o usuário pelo EMAIL
         Usuario usuario = usuarioService.buscarUsuarioPorEmail(emailUsuario);
-
-        if (usuario == null) {
-            throw new RuntimeException("Usuário não encontrado para o email: " + emailUsuario);
-        }
-
-        return ResponseEntity.ok(usuarioMapper.toDTO(usuario));
+        return ResponseEntity.ok(usuarioMapper.toDTO(usuario));  // ← USAR O MAPPER MANUAL
     }
 }

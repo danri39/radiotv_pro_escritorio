@@ -18,9 +18,13 @@ public class Configuracao {
     private Long configuracaoId;
 
     private String agenciaPadrao;
+
     private String contaCorrentePadrao;
+
     private String carteiraPadrao;
+
     private String codigoCedentePadrao;
+
     private String codigoConvenioBancario;
 
     @Column(name = "percentual_multa_atraso")
